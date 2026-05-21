@@ -29,6 +29,7 @@ const pipelineCards = [
     href: "/pipeline/active",
     icon: Timer,
     tone: "text-cyan-200",
+    type: "deadline",
   },
   {
     title: "FO Complete",
@@ -90,6 +91,11 @@ export default function ProductionPipelinePage() {
     queryFn: () => api.getFoOutstanding({ page: 1, limit: 5 }),
   });
 
+  const deadlineSummary = useQuery({
+    queryKey: ["fo-deadline-summary"],
+    queryFn: () => api.getFoDeadlineSummary(),
+  });
+
   const outstandingTable = useQuery({
     queryKey: ["fo-outstanding", page, limit, search],
     queryFn: () =>
@@ -118,6 +124,7 @@ export default function ProductionPipelinePage() {
         {pipelineCards.map((card) => {
           const Icon = card.icon;
           const isOutstanding = card.type === "outstanding";
+          const isDeadline = card.type === "deadline";
           const content = (
             <>
               <div className="flex items-start justify-between gap-4">
@@ -142,6 +149,13 @@ export default function ProductionPipelinePage() {
                       : outstandingSummary.data?.count ?? 0}
                   </span>
                 ) : null}
+                {isDeadline ? (
+                  <span className="text-3xl font-semibold text-white">
+                    {deadlineSummary.isLoading
+                      ? "-"
+                      : deadlineSummary.data?.count ?? 0}
+                  </span>
+                ) : null}
               </div>
               <p className="mt-2 text-sm leading-6 text-slate-400">
                 {card.description}
@@ -149,6 +163,11 @@ export default function ProductionPipelinePage() {
               {isOutstanding && outstandingSummary.isError ? (
                 <p className="mt-3 text-sm text-red-300">
                   {outstandingSummary.error.message}
+                </p>
+              ) : null}
+              {isDeadline && deadlineSummary.isError ? (
+                <p className="mt-3 text-sm text-red-300">
+                  {deadlineSummary.error.message}
                 </p>
               ) : null}
             </>
@@ -277,7 +296,7 @@ export default function ProductionPipelinePage() {
                       <td className="px-5 py-4 text-right">
                         <button
                           aria-label={`Lihat detail ${item.no_fo}`}
-                          className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-700 text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
+                          className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-700 text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-300"
                           onClick={() => setSelectedFo(item)}
                         >
                           <Eye size={17} />
