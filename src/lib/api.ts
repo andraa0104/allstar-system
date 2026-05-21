@@ -124,6 +124,10 @@ export const api = {
     );
   },
 
+  getFoDeadlineSummary() {
+    return apiFetch<{ count: number }>("/production/fo-deadline-summary");
+  },
+
   updateProfile(payload: ProfilePayload) {
     return apiFetch<{ message?: string }>("/settings/profile", {
       method: "PUT",
