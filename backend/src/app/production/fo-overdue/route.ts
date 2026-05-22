@@ -8,18 +8,17 @@ export const runtime = "nodejs";
 const completedStatus = "Produk diterima Customer";
 const packingReadyStatus = "Selesai Packing, Siap diAmbil";
 
-type OutstandingCountRow = RowDataPacket & {
+type OverdueCountRow = RowDataPacket & {
   total: number;
 };
 
-type OutstandingRow = RowDataPacket & {
+type OverdueRow = RowDataPacket & {
   no_fo: string;
   doc_date: Date | string | null;
   customer: string | null;
   status: string | null;
   status_lanjutan: string | null;
   datetime_lanjutan: Date | string | null;
-  deadline_days: number;
   deadline_date: Date | string | null;
 };
 
@@ -29,7 +28,6 @@ export async function GET(request: Request) {
     const search = url.searchParams.get("search")?.trim() ?? "";
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
-    const deadlineType = url.searchParams.get("deadline_type")?.trim() ?? "";
     const isAllData = rawLimit === "all";
     const limit = isAllData
       ? null
@@ -65,10 +63,15 @@ export async function GET(request: Request) {
       GROUP BY TRIM(c.no_fo)
     `;
 
-    let filterWhereClause = `(
+    const searchWhereClause = `(
       :search = ''
       OR unique_fo.no_fo LIKE :searchPattern
       OR unique_fo.customer LIKE :searchPattern
+    )
+    AND (
+      unique_fo.latest_datetime_lanjutan IS NOT NULL
+      AND unique_fo.deadline_date IS NOT NULL
+      AND DATE(unique_fo.latest_datetime_lanjutan) > unique_fo.deadline_date
     )
     AND (
       unique_fo.status_lanjutan IS NULL
@@ -76,18 +79,7 @@ export async function GET(request: Request) {
         unique_fo.status_lanjutan <> :completedStatus
         AND unique_fo.status_lanjutan <> :packingReadyStatus
       )
-    )
-    AND (
-      unique_fo.deadline_date IS NOT NULL
-      AND unique_fo.deadline_date >= CURDATE()
-      AND DATEDIFF(unique_fo.deadline_date, CURDATE()) <= 4
     )`;
-
-    if (deadlineType === "singkat") {
-      filterWhereClause += ` AND DATEDIFF(unique_fo.deadline_date, CURDATE()) <= 2`;
-    } else if (deadlineType === "lama") {
-      filterWhereClause += ` AND DATEDIFF(unique_fo.deadline_date, CURDATE()) > 2`;
-    }
 
     const params = {
       completedStatus,
@@ -96,24 +88,22 @@ export async function GET(request: Request) {
       searchPattern: `%${search}%`,
     };
 
-    const [countRows] = await pool.execute<OutstandingCountRow[]>(
+    const [countRows] = await pool.execute<OverdueCountRow[]>(
       `SELECT COUNT(*) AS total
        FROM (${uniqueFoSql}) AS unique_fo
-       WHERE ${filterWhereClause}`,
+       WHERE ${searchWhereClause}`,
       params,
     );
 
     const total = Number(countRows[0]?.total ?? 0);
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
-    
-    const [items] = await pool.execute<OutstandingRow[]>(
-      `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status, 
+    const [items] = await pool.execute<OverdueRow[]>(
+      `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status,
               latest_datetime_lanjutan AS datetime_lanjutan,
-              DATEDIFF(deadline_date, CURDATE()) AS deadline_days,
               deadline_date
        FROM (${uniqueFoSql}) AS unique_fo
-       WHERE ${filterWhereClause}
-       ORDER BY deadline_date ASC, unique_fo.no_fo DESC
+       WHERE ${searchWhereClause}
+       ORDER BY unique_fo.deadline_date ASC, unique_fo.no_fo DESC
        ${paginationSql}`,
       params,
     );

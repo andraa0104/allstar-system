@@ -5,6 +5,7 @@ import { emptyResponse, errorResponse, jsonResponse } from "@/lib/response";
 export const runtime = "nodejs";
 
 const completedStatus = "Produk diterima Customer";
+const packingReadyStatus = "Selesai Packing, Siap diAmbil";
 
 type OutstandingCountRow = RowDataPacket & {
   total: number;
@@ -14,6 +15,7 @@ type OutstandingRow = RowDataPacket & {
   no_fo: string;
   doc_date: Date | string | null;
   customer: string | null;
+  status: string | null;
   status_lanjutan: string | null;
 };
 
@@ -30,21 +32,19 @@ export async function GET(request: Request) {
     const page = Math.max(requestedPage || 1, 1);
     const offset = limit ? (page - 1) * limit : 0;
 
-    const baseWhereClause = `no_fo IS NOT NULL
-      AND TRIM(no_fo) <> ''
-      AND (status_lanjutan IS NULL OR status_lanjutan <> :completedStatus)`;
+    const baseWhereClause = `no_fo IS NOT NULL AND TRIM(no_fo) <> ''`;
 
     const uniqueFoSql = `
       SELECT
         TRIM(no_fo) AS no_fo,
-        MAX(doc_date) AS doc_date,
+        MAX(order_date) AS doc_date,
         SUBSTRING_INDEX(
-          GROUP_CONCAT(customer ORDER BY doc_date DESC SEPARATOR '|||'),
+          GROUP_CONCAT(customer ORDER BY order_date DESC, id DESC SEPARATOR '|||'),
           '|||',
           1
         ) AS customer,
         SUBSTRING_INDEX(
-          GROUP_CONCAT(status_lanjutan ORDER BY doc_date DESC SEPARATOR '|||'),
+          GROUP_CONCAT(status_lanjutan ORDER BY order_date DESC, id DESC SEPARATOR '|||'),
           '|||',
           1
         ) AS status_lanjutan
@@ -57,10 +57,18 @@ export async function GET(request: Request) {
       :search = ''
       OR unique_fo.no_fo LIKE :searchPattern
       OR unique_fo.customer LIKE :searchPattern
+    )
+    AND (
+      unique_fo.status_lanjutan IS NULL
+      OR (
+        unique_fo.status_lanjutan <> :completedStatus
+        AND unique_fo.status_lanjutan <> :packingReadyStatus
+      )
     )`;
 
     const params = {
       completedStatus,
+      packingReadyStatus,
       search,
       searchPattern: `%${search}%`,
     };
@@ -75,7 +83,7 @@ export async function GET(request: Request) {
     const total = Number(countRows[0]?.total ?? 0);
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const [items] = await pool.execute<OutstandingRow[]>(
-      `SELECT no_fo, doc_date, customer, status_lanjutan
+      `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status
        FROM (${uniqueFoSql}) AS unique_fo
        WHERE ${searchWhereClause}
        ORDER BY unique_fo.doc_date DESC, unique_fo.no_fo DESC

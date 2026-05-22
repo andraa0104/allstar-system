@@ -5,22 +5,17 @@ import { emptyResponse, errorResponse, jsonResponse } from "@/lib/response";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const completedStatus = "Produk diterima Customer";
-const packingReadyStatus = "Selesai Packing, Siap diAmbil";
-
-type OutstandingCountRow = RowDataPacket & {
+type CompleteCountRow = RowDataPacket & {
   total: number;
 };
 
-type OutstandingRow = RowDataPacket & {
+type CompleteRow = RowDataPacket & {
   no_fo: string;
   doc_date: Date | string | null;
   customer: string | null;
   status: string | null;
   status_lanjutan: string | null;
-  datetime_lanjutan: Date | string | null;
-  deadline_days: number;
-  deadline_date: Date | string | null;
+  QC_ReadyGudang: Date | string | null;
 };
 
 export async function GET(request: Request) {
@@ -29,7 +24,6 @@ export async function GET(request: Request) {
     const search = url.searchParams.get("search")?.trim() ?? "";
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
-    const deadlineType = url.searchParams.get("deadline_type")?.trim() ?? "";
     const isAllData = rawLimit === "all";
     const limit = isAllData
       ? null
@@ -53,67 +47,43 @@ export async function GET(request: Request) {
           '|||',
           1
         ) AS status_lanjutan,
-        SUBSTRING_INDEX(
-          GROUP_CONCAT(c.datetime_lanjutan ORDER BY c.order_date DESC, c.id DESC SEPARATOR '|||'),
-          '|||',
-          1
-        ) AS latest_datetime_lanjutan,
-        MAX(k.deadline_date) AS deadline_date
+        MAX(k.QC_ReadyGudang) AS QC_ReadyGudang
       FROM tb_control c
       LEFT JOIN tb_kdfo k ON TRIM(c.no_fo) = TRIM(k.no_fo)
       WHERE ${baseWhereClause}
       GROUP BY TRIM(c.no_fo)
     `;
 
-    let filterWhereClause = `(
+    const searchWhereClause = `(
       :search = ''
       OR unique_fo.no_fo LIKE :searchPattern
       OR unique_fo.customer LIKE :searchPattern
     )
     AND (
-      unique_fo.status_lanjutan IS NULL
-      OR (
-        unique_fo.status_lanjutan <> :completedStatus
-        AND unique_fo.status_lanjutan <> :packingReadyStatus
-      )
-    )
-    AND (
-      unique_fo.deadline_date IS NOT NULL
-      AND unique_fo.deadline_date >= CURDATE()
-      AND DATEDIFF(unique_fo.deadline_date, CURDATE()) <= 4
+      unique_fo.QC_ReadyGudang IS NOT NULL
+      AND TRIM(unique_fo.QC_ReadyGudang) <> ''
     )`;
 
-    if (deadlineType === "singkat") {
-      filterWhereClause += ` AND DATEDIFF(unique_fo.deadline_date, CURDATE()) <= 2`;
-    } else if (deadlineType === "lama") {
-      filterWhereClause += ` AND DATEDIFF(unique_fo.deadline_date, CURDATE()) > 2`;
-    }
-
     const params = {
-      completedStatus,
-      packingReadyStatus,
       search,
       searchPattern: `%${search}%`,
     };
 
-    const [countRows] = await pool.execute<OutstandingCountRow[]>(
+    const [countRows] = await pool.execute<CompleteCountRow[]>(
       `SELECT COUNT(*) AS total
        FROM (${uniqueFoSql}) AS unique_fo
-       WHERE ${filterWhereClause}`,
+       WHERE ${searchWhereClause}`,
       params,
     );
 
     const total = Number(countRows[0]?.total ?? 0);
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
-    
-    const [items] = await pool.execute<OutstandingRow[]>(
-      `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status, 
-              latest_datetime_lanjutan AS datetime_lanjutan,
-              DATEDIFF(deadline_date, CURDATE()) AS deadline_days,
-              deadline_date
+    const [items] = await pool.execute<CompleteRow[]>(
+      `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status,
+              QC_ReadyGudang
        FROM (${uniqueFoSql}) AS unique_fo
-       WHERE ${filterWhereClause}
-       ORDER BY deadline_date ASC, unique_fo.no_fo DESC
+       WHERE ${searchWhereClause}
+       ORDER BY unique_fo.no_fo DESC, unique_fo.doc_date DESC
        ${paginationSql}`,
       params,
     );

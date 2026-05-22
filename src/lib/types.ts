@@ -52,7 +52,11 @@ export type FoOutstandingRow = {
   no_fo: string;
   doc_date: string | null;
   customer: string | null;
-  status_lanjutan: string | null;
+  status?: string | null;
+  status_lanjutan?: string | null;
+  datetime_lanjutan?: string | null;
+  deadline_days?: number;
+  deadline_date?: string | null;
 };
 
 export type FoOutstandingResponse = {
@@ -85,3 +89,28 @@ export type PasswordPayload = {
 };
 
 export type PermissionMatrix = Record<string, Record<string, boolean>>;
+
+export type FoDetailData = {
+  no_fo: string;
+  doc_date: string | null;
+  order_date: string | null;
+  deposit_date: string | null;
+  customer: string | null;
+  qty_order: number | null;
+  remark: string | null;
+  deadline_date: string | null;
+  pos_date: string | null;
+  QC_ReadyGudang: string | null;
+  sales: string | null;
+  desain: string | null;
+  totalrp: number | null;
+  uang_muka: number | null;
+  tgl_um: string | null;
+  sisa_tagihan: number | null;
+  bayar_lunas: number | null;
+  tgl_pelunasan: string | null;
+  telp_cus: string | null;
+  Desain_Ready: string | null;
+  Start_Layout: string | null;
+  Layout_Ready: string | null;
+};

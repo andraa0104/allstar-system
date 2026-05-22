@@ -1,5 +1,6 @@
 import type {
   AccountPayload,
+  FoDetailData,
   FoOutstandingResponse,
   LoginPayload,
   LoginResponse,
@@ -124,8 +125,83 @@ export const api = {
     );
   },
 
-  getFoDeadlineSummary() {
-    return apiFetch<{ count: number }>("/production/fo-deadline-summary");
+  getFoDeadlineSummary(params?: {
+    page?: number;
+    limit?: number | "all";
+    search?: string;
+    deadline_type?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) {
+      searchParams.set("page", String(params.page));
+    }
+    if (params?.limit) {
+      searchParams.set("limit", String(params.limit));
+    }
+    if (params?.search) {
+      searchParams.set("search", params.search);
+    }
+    if (params?.deadline_type) {
+      searchParams.set("deadline_type", params.deadline_type);
+    }
+
+    const query = searchParams.toString();
+    return apiFetch<FoOutstandingResponse>(
+      `/production/fo-deadline-summary${query ? `?${query}` : ""}`,
+    );
+  },
+
+  getFoOverdue(params?: {
+    page?: number;
+    limit?: number | "all";
+    search?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) {
+      searchParams.set("page", String(params.page));
+    }
+    if (params?.limit) {
+      searchParams.set("limit", String(params.limit));
+    }
+    if (params?.search) {
+      searchParams.set("search", params.search);
+    }
+
+    const query = searchParams.toString();
+    return apiFetch<FoOutstandingResponse>(
+      `/production/fo-overdue${query ? `?${query}` : ""}`,
+    );
+  },
+
+  getFoComplete(params?: {
+    page?: number;
+    limit?: number | "all";
+    search?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) {
+      searchParams.set("page", String(params.page));
+    }
+    if (params?.limit) {
+      searchParams.set("limit", String(params.limit));
+    }
+    if (params?.search) {
+      searchParams.set("search", params.search);
+    }
+
+    const query = searchParams.toString();
+    return apiFetch<FoOutstandingResponse>(
+      `/production/fo-complete${query ? `?${query}` : ""}`,
+    );
+  },
+
+  async getFoDetail(noFo: string) {
+    return apiFetch<FoDetailData>(
+      `/production/fo-detail?no_fo=${encodeURIComponent(noFo)}`,
+    );
   },
 
   updateProfile(payload: ProfilePayload) {
