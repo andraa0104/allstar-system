@@ -11,13 +11,13 @@ type DeadlineSummaryRow = RowDataPacket & {
 export async function GET(request: Request) {
   try {
     const [rows] = await pool.execute<DeadlineSummaryRow[]>(
-      `SELECT COUNT(DISTINCT TRIM(no_fo)) AS count
+      `SELECT COUNT(DISTINCT no_job) AS count
        FROM tb_control
-       WHERE no_fo IS NOT NULL
-       AND TRIM(no_fo) <> ''
+       WHERE no_job IS NOT NULL
+       AND TRIM(no_job) <> ''
        AND datetime_lanjutan IS NOT NULL
-       AND DATE(datetime_lanjutan) >= CURDATE()
-       AND DATE(datetime_lanjutan) <= DATE_ADD(CURDATE(), INTERVAL 2 DAY)
+       AND DATE(datetime_lanjutan) >= DATE_SUB(CURDATE(), INTERVAL 2 DAY)
+       AND DATE(datetime_lanjutan) <= CURDATE()
        AND (status_lanjutan IS NULL OR status_lanjutan <> :completedStatus)`,
       { completedStatus: "Produk diterima Customer" },
     );
