@@ -184,7 +184,17 @@ export async function GET(request: Request) {
       `SELECT no_fo, order_date, doc_date, deadline_date, datetime_lanjutan, customer, qty_order, status_lanjutan
        FROM (${uniqueFoSql}) AS unique_fo
        WHERE ${filterWhereClause}
-       ORDER BY unique_fo.no_fo DESC
+       ORDER BY 
+         CASE 
+           WHEN unique_fo.status_lanjutan = 'Produk diterima Customer' OR unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil' THEN 2
+           ELSE 1
+         END ASC,
+         CASE 
+           WHEN unique_fo.status_lanjutan = 'Produk diterima Customer' OR unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil' THEN NULL
+           WHEN unique_fo.deadline_date IS NULL THEN '9999-12-31'
+           ELSE unique_fo.deadline_date
+         END ASC,
+         unique_fo.no_fo DESC
        ${paginationSql}`,
       params,
     );

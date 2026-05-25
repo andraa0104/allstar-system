@@ -321,17 +321,47 @@ function RemainingDeadlineWidget({ posDate, deadlineDate, qcReadyGudang }: Remai
   );
 }
 
-function matchesSearch(item: FoOutstandingRow, search: string) {
+function matchesSearch(item: any, search: string) {
   const keyword = search.trim().toLowerCase();
-
-  if (!keyword) {
-    return true;
-  }
-
+  if (!keyword) return true;
   return (
     item.no_fo.toLowerCase().includes(keyword) ||
     (item.customer ?? "").toLowerCase().includes(keyword)
   );
+}
+
+function getDeadlineStyle(deadlineDateStr: string | null, status: string | null) {
+  if (!deadlineDateStr) return "";
+  if (status === "Produk diterima Customer" || status === "Selesai Packing, Siap diAmbil") {
+    return "";
+  }
+
+  const parts = deadlineDateStr.split("T")[0].split("-");
+  if (parts.length !== 3) return "";
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+
+  const deadline = new Date(year, month, day);
+  deadline.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffTime = deadline.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) {
+    // Overdue -> Fuchsia/Magenta critical warning (fully distinct from H-2 red warning)
+    return "bg-fuchsia-950/20 border-fuchsia-900/30 hover:bg-fuchsia-950/30 border-l-4 border-l-fuchsia-500 text-fuchsia-100";
+  } else if (diffDays <= 2) {
+    // H-2 sampai Hari H -> fill warna merah
+    return "bg-red-950/20 border-red-900/30 hover:bg-red-950/30 border-l-4 border-l-red-500 text-red-100";
+  } else if (diffDays <= 4) {
+    // H-4 sampai H-3 -> fill warna kuning
+    return "bg-amber-950/15 border-amber-900/20 hover:bg-amber-950/25 border-l-4 border-l-amber-500 text-amber-100";
+  }
+  return "";
 }
 
 export default function ProductionPipelinePage() {
@@ -820,7 +850,12 @@ export default function ProductionPipelinePage() {
               ) : null}
 
               {foListTable.data?.items?.map((item: FoListRow) => (
-                <tr key={item.no_fo} className="hover:bg-slate-900/30 transition-colors">
+                <tr 
+                  key={item.no_fo} 
+                  className={`transition-colors border-b border-slate-800/60 ${
+                    getDeadlineStyle(item.deadline_date, item.status_lanjutan) || "hover:bg-slate-900/30 text-slate-300"
+                  }`}
+                >
                   <td className="px-5 py-4 font-mono font-bold text-white tracking-wide">
                     {item.no_fo}
                   </td>
@@ -881,7 +916,12 @@ export default function ProductionPipelinePage() {
           ) : null}
 
           {foListTable.data?.items?.map((item: FoListRow) => (
-            <div key={item.no_fo} className="rounded-lg border border-slate-800/80 bg-slate-950/30 p-4 space-y-3 shadow-md hover:border-slate-700/60 transition-colors">
+            <div 
+              key={item.no_fo} 
+              className={`rounded-lg border p-4 space-y-3 shadow-md transition-colors ${
+                getDeadlineStyle(item.deadline_date, item.status_lanjutan) || "border-slate-800/80 bg-slate-950/30 hover:border-slate-700/60 text-slate-300"
+              }`}
+            >
               <div className="flex justify-between items-start gap-3">
                 <div>
                   <span className="block text-[9px] uppercase font-bold text-slate-500 tracking-wider">No FO</span>
