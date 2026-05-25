@@ -59,13 +59,11 @@ export async function GET(request: Request) {
       OR unique_fo.no_fo LIKE :searchPattern
       OR unique_fo.customer LIKE :searchPattern
     )
-    AND (
-      unique_fo.status_lanjutan IS NULL
-      OR (
-        unique_fo.status_lanjutan <> :completedStatus
-        AND unique_fo.status_lanjutan <> :packingReadyStatus
-      )
-    )`;
+    AND unique_fo.status_lanjutan IS NOT NULL
+    AND TRIM(unique_fo.status_lanjutan) <> ''
+    AND TRIM(unique_fo.status_lanjutan) <> '-'
+    AND unique_fo.status_lanjutan <> :completedStatus
+    AND unique_fo.status_lanjutan <> :packingReadyStatus`;
 
     const params = {
       completedStatus,
