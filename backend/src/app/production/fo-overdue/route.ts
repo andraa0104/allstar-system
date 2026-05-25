@@ -19,6 +19,7 @@ type OverdueRow = RowDataPacket & {
   status: string | null;
   status_lanjutan: string | null;
   datetime_lanjutan: Date | string | null;
+  deadline_days: number;
   deadline_date: Date | string | null;
 };
 
@@ -40,27 +41,19 @@ export async function GET(request: Request) {
     const uniqueFoSql = `
       SELECT
         TRIM(c.no_fo) AS no_fo,
-        MAX(c.order_date) AS doc_date,
-        SUBSTRING_INDEX(
-          GROUP_CONCAT(c.customer ORDER BY c.order_date DESC, c.id DESC SEPARATOR '|||'),
-          '|||',
-          1
-        ) AS customer,
-        SUBSTRING_INDEX(
-          GROUP_CONCAT(c.status_lanjutan ORDER BY c.order_date DESC, c.id DESC SEPARATOR '|||'),
-          '|||',
-          1
-        ) AS status_lanjutan,
-        SUBSTRING_INDEX(
-          GROUP_CONCAT(c.datetime_lanjutan ORDER BY c.order_date DESC, c.id DESC SEPARATOR '|||'),
-          '|||',
-          1
-        ) AS latest_datetime_lanjutan,
-        MAX(k.deadline_date) AS deadline_date
+        c.order_date AS doc_date,
+        c.customer AS customer,
+        c.status_lanjutan AS status_lanjutan,
+        c.datetime_lanjutan AS latest_datetime_lanjutan,
+        k.deadline_date AS deadline_date
       FROM tb_control c
+      INNER JOIN (
+        SELECT MAX(id) AS max_id
+        FROM tb_control
+        WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
+        GROUP BY TRIM(no_fo)
+      ) latest ON c.id = latest.max_id
       LEFT JOIN tb_kdfo k ON TRIM(c.no_fo) = TRIM(k.no_fo)
-      WHERE ${baseWhereClause}
-      GROUP BY TRIM(c.no_fo)
     `;
 
     const searchWhereClause = `(
@@ -69,9 +62,8 @@ export async function GET(request: Request) {
       OR unique_fo.customer LIKE :searchPattern
     )
     AND (
-      unique_fo.latest_datetime_lanjutan IS NOT NULL
-      AND unique_fo.deadline_date IS NOT NULL
-      AND DATE(unique_fo.latest_datetime_lanjutan) > unique_fo.deadline_date
+      unique_fo.deadline_date IS NOT NULL
+      AND unique_fo.deadline_date < CURDATE()
     )
     AND (
       unique_fo.status_lanjutan IS NULL
@@ -100,6 +92,7 @@ export async function GET(request: Request) {
     const [items] = await pool.execute<OverdueRow[]>(
       `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status,
               latest_datetime_lanjutan AS datetime_lanjutan,
+              DATEDIFF(CURDATE(), deadline_date) AS deadline_days,
               deadline_date
        FROM (${uniqueFoSql}) AS unique_fo
        WHERE ${searchWhereClause}

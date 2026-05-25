@@ -36,22 +36,18 @@ export async function GET(request: Request) {
     const uniqueFoSql = `
       SELECT
         TRIM(c.no_fo) AS no_fo,
-        MAX(c.order_date) AS doc_date,
-        SUBSTRING_INDEX(
-          GROUP_CONCAT(c.customer ORDER BY c.order_date DESC, c.id DESC SEPARATOR '|||'),
-          '|||',
-          1
-        ) AS customer,
-        SUBSTRING_INDEX(
-          GROUP_CONCAT(c.status_lanjutan ORDER BY c.order_date DESC, c.id DESC SEPARATOR '|||'),
-          '|||',
-          1
-        ) AS status_lanjutan,
-        MAX(k.QC_ReadyGudang) AS QC_ReadyGudang
+        c.order_date AS doc_date,
+        c.customer AS customer,
+        c.status_lanjutan AS status_lanjutan,
+        k.QC_ReadyGudang AS QC_ReadyGudang
       FROM tb_control c
+      INNER JOIN (
+        SELECT MAX(id) AS max_id
+        FROM tb_control
+        WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
+        GROUP BY TRIM(no_fo)
+      ) latest ON c.id = latest.max_id
       LEFT JOIN tb_kdfo k ON TRIM(c.no_fo) = TRIM(k.no_fo)
-      WHERE ${baseWhereClause}
-      GROUP BY TRIM(c.no_fo)
     `;
 
     const searchWhereClause = `(

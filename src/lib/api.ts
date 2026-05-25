@@ -1,14 +1,19 @@
 import type {
   AccountPayload,
   FoDetailData,
+  FoDetailItemRow,
+  FoDetailItemsResponse,
+  FoJobDetailRow,
+  FoJobDetailsResponse,
   FoOutstandingResponse,
+  FoListResponse,
   LoginPayload,
   LoginResponse,
   PasswordPayload,
   PermissionMatrix,
   ProductionOrder,
   ProfilePayload,
-  SessionUser,
+  SessionUser
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -198,9 +203,88 @@ export const api = {
     );
   },
 
+  getFoList(params?: {
+    page?: number;
+    limit?: number | "all";
+    search?: string;
+    search_by?: string;
+    status_category?: number;
+  }) {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) {
+      searchParams.set("page", String(params.page));
+    }
+    if (params?.limit) {
+      searchParams.set("limit", String(params.limit));
+    }
+    if (params?.search) {
+      searchParams.set("search", params.search);
+    }
+    if (params?.search_by) {
+      searchParams.set("search_by", params.search_by);
+    }
+    if (params?.status_category !== undefined) {
+      searchParams.set("status_category", String(params.status_category));
+    }
+
+    const query = searchParams.toString();
+    return apiFetch<FoListResponse>(
+      `/production/fo-list${query ? `?${query}` : ""}`,
+    );
+  },
+
   async getFoDetail(noFo: string) {
     return apiFetch<FoDetailData>(
       `/production/fo-detail?no_fo=${encodeURIComponent(noFo)}`,
+    );
+  },
+
+  getFoDetailItems(params: {
+    no_fo: string;
+    page?: number;
+    limit?: number | "all";
+    search?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    searchParams.set("no_fo", params.no_fo);
+
+    if (params.page) {
+      searchParams.set("page", String(params.page));
+    }
+    if (params.limit) {
+      searchParams.set("limit", String(params.limit));
+    }
+    if (params.search) {
+      searchParams.set("search", params.search);
+    }
+
+    return apiFetch<FoDetailItemsResponse>(
+      `/production/fo-detail-items?${searchParams.toString()}`,
+    );
+  },
+
+  getFoJobDetails(params: {
+    no_fo: string;
+    page?: number;
+    limit?: number | "all";
+    search?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    searchParams.set("no_fo", params.no_fo);
+
+    if (params.page) {
+      searchParams.set("page", String(params.page));
+    }
+    if (params.limit) {
+      searchParams.set("limit", String(params.limit));
+    }
+    if (params.search) {
+      searchParams.set("search", params.search);
+    }
+
+    return apiFetch<FoJobDetailsResponse>(
+      `/production/fo-job-details?${searchParams.toString()}`,
     );
   },
 

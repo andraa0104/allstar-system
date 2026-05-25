@@ -41,7 +41,21 @@ export async function GET(request: Request) {
          k.telp_cus,
          k.Desain_Ready,
          k.Start_Layout,
-         k.Layout_ReadyPrint AS Layout_Ready
+         k.Layout_ReadyPrint AS Layout_Ready,
+         k.Start_Print,
+         k.Print_ReadyPress,
+         k.Ambil_Kain,
+         k.Kain_ReadyPress,
+         k.Start_Press,
+         k.Press_ReadyCut,
+         k.Start_Cut,
+         k.Cut_ReadyJahit,
+         k.Start_Jahit,
+         k.Jahit_ReadyQC,
+         k.Start_QC,
+         k.FinalQC_Packiing,
+         k.QC_ReadyGudang,
+         k.Final_Cust
        FROM tb_control c
        LEFT JOIN tb_kdfo k ON TRIM(c.no_fo) = TRIM(k.no_fo)
        WHERE TRIM(c.no_fo) = :noFo

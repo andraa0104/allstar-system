@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ArrowRight,
@@ -21,7 +21,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { api } from "@/lib/api";
-import type { FoDetailData, FoOutstandingRow } from "@/lib/types";
+import type { FoDetailData, FoOutstandingRow, FoListRow } from "@/lib/types";
 
 const pipelineCards = [
   {
@@ -335,10 +335,37 @@ function matchesSearch(item: FoOutstandingRow, search: string) {
 }
 
 export default function ProductionPipelinePage() {
+  const queryClient = useQueryClient();
   const [isOutstandingOpen, setIsOutstandingOpen] = useState(false);
   const [isDeadlineOpen, setIsDeadlineOpen] = useState(false);
   const [isOverdueOpen, setIsOverdueOpen] = useState(false);
   const [selectedFo, setSelectedFo] = useState<FoOutstandingRow | null>(null);
+
+  const [activeTab, setActiveTab] = useState<"summary" | "detail" | "job">("summary");
+  const [detailSearch, setDetailSearch] = useState("");
+  const [detailLimit, setDetailLimit] = useState<number | "all">(5);
+  const [detailPage, setDetailPage] = useState(1);
+
+  const [jobSearch, setJobSearch] = useState("");
+  const [jobLimit, setJobLimit] = useState<number | "all">(5);
+  const [jobPage, setJobPage] = useState(1);
+
+  const [showDetailFilters, setShowDetailFilters] = useState(false);
+  const [showJobFilters, setShowJobFilters] = useState(false);
+
+  useEffect(() => {
+    if (selectedFo) {
+      setActiveTab("summary");
+      setDetailSearch("");
+      setDetailLimit(5);
+      setDetailPage(1);
+      setJobSearch("");
+      setJobLimit(5);
+      setJobPage(1);
+      setShowDetailFilters(false);
+      setShowJobFilters(false);
+    }
+  }, [selectedFo]);
 
   // States for Outstanding Modal
   const [outstandingPage, setOutstandingPage] = useState(1);
@@ -361,6 +388,13 @@ export default function ProductionPipelinePage() {
   const [completePage, setCompletePage] = useState(1);
   const [completeLimit, setCompleteLimit] = useState<number | "all">(5);
   const [completeSearch, setCompleteSearch] = useState("");
+
+  // States for general FO List
+  const [foListPage, setFoListPage] = useState(1);
+  const [foListLimit, setFoListLimit] = useState<number | "all">(5);
+  const [foListSearch, setFoListSearch] = useState("");
+  const [foListSearchBy, setFoListSearchBy] = useState<string>("no_fo");
+  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(0);
 
   const outstandingSummary = useQuery({
     queryKey: ["fo-outstanding-summary"],
@@ -422,6 +456,38 @@ export default function ProductionPipelinePage() {
     enabled: !!selectedFo?.no_fo,
   });
 
+  const foDetailItemsQuery = useQuery({
+    queryKey: ["fo-detail-items", selectedFo?.no_fo, detailPage, detailLimit, detailSearch],
+    queryFn: () =>
+      api.getFoDetailItems({
+        no_fo: selectedFo!.no_fo,
+        page: detailPage,
+        limit: detailLimit,
+        search: detailSearch,
+      }),
+    enabled: !!selectedFo?.no_fo && activeTab === "detail",
+  });
+
+  const foJobDetailsQuery = useQuery({
+    queryKey: ["fo-job-details", selectedFo?.no_fo, jobPage, jobLimit, jobSearch],
+    queryFn: () =>
+      api.getFoJobDetails({
+        no_fo: selectedFo!.no_fo,
+        page: jobPage,
+        limit: jobLimit,
+        search: jobSearch,
+      }),
+    enabled: !!selectedFo?.no_fo && activeTab === "job",
+  });
+
+  useEffect(() => {
+    if (selectedFo?.no_fo) {
+      queryClient.resetQueries({ queryKey: ["fo-detail", selectedFo.no_fo] });
+      queryClient.resetQueries({ queryKey: ["fo-detail-items", selectedFo.no_fo] });
+      queryClient.resetQueries({ queryKey: ["fo-job-details", selectedFo.no_fo] });
+    }
+  }, [selectedFo?.no_fo, queryClient]);
+
   const visibleOutstandingItems = (outstandingTable.data?.items ?? []).filter(
     (item, index, rows) =>
       matchesSearch(item, outstandingSearch) &&
@@ -456,6 +522,18 @@ export default function ProductionPipelinePage() {
       matchesSearch(item, completeSearch) &&
       rows.findIndex((row) => row.no_fo === item.no_fo) === index,
   );
+
+  const foListTable = useQuery({
+    queryKey: ["fo-list", foListPage, foListLimit, foListSearch, foListSearchBy, foListStatusCategory],
+    queryFn: () =>
+      api.getFoList({
+        page: foListPage,
+        limit: foListLimit,
+        search: foListSearch,
+        search_by: foListSearchBy,
+        status_category: foListStatusCategory,
+      }),
+  });
 
   return (
     <>
@@ -601,6 +679,291 @@ export default function ProductionPipelinePage() {
           );
         })}
       </div>
+
+      {/* General FO List Table Section */}
+      <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md shadow-xl shadow-slate-950/20">
+        <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <ClipboardList className="text-cyan-400 size-5" />
+              Daftar Form Order (FO)
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Daftar lengkap seluruh Form Order (FO) dari database dengan penyaringan dinamis.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {/* Kategori Status filter dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400">Status:</span>
+              <select
+                value={foListStatusCategory}
+                onChange={(e) => {
+                  setFoListStatusCategory(Number(e.target.value));
+                  setFoListPage(1);
+                }}
+                className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
+              >
+                <option value={0}>FO ALL</option>
+                <option value={1}>FO DP - Antrian</option>
+                <option value={2}>FO DP + Non DP Antrian</option>
+                <option value={3}>FO Belum DP</option>
+                <option value={4}>DP - Belum KLaim</option>
+                <option value={5}>Belum KLaim - FinalQC</option>
+                <option value={6}>Proses Desain</option>
+                <option value={7}>Desain Ready</option>
+                <option value={8}>Proses Susun Layout</option>
+                <option value={9}>Layout Print Ready</option>
+                <option value={10}>Proses Persiapan Bahan Kain</option>
+                <option value={11}>Proses Printing</option>
+                <option value={12}>Ready to Press</option>
+                <option value={13}>Proses Press</option>
+                <option value={14}>Kain Ready Cutting</option>
+                <option value={15}>Proses Cutting</option>
+                <option value={16}>Ready Jahit</option>
+                <option value={17}>Proses Jahit</option>
+                <option value={18}>Ready QC</option>
+                <option value={19}>Proses QC</option>
+                <option value={20}>Ready Packing</option>
+                <option value={21}>Packing Selesai</option>
+                <option value={22}>Final Cust</option>
+              </select>
+            </div>
+
+            {/* Search filter dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400">Cari:</span>
+              <select
+                value={foListSearchBy}
+                onChange={(e) => {
+                  setFoListSearchBy(e.target.value);
+                  setFoListSearch("");
+                  setFoListPage(1);
+                }}
+                className="h-9 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400"
+              >
+                <option value="no_fo">Nomor Order</option>
+                <option value="customer">Customer</option>
+                <option value="post_date">Post Date</option>
+                <option value="deadline_date">Deadline Date</option>
+              </select>
+            </div>
+
+            {/* Search Input supporting search filter */}
+            <input
+              type="text"
+              value={foListSearch}
+              onChange={(e) => {
+                setFoListSearch(e.target.value);
+                setFoListPage(1);
+              }}
+              placeholder={
+                foListSearchBy === "post_date" || foListSearchBy === "deadline_date"
+                  ? "Format wajib: yyyy-mm-dd"
+                  : "Cari data..."
+              }
+              className="h-9 w-60 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+            />
+
+            {/* Page Size Select */}
+            <div className="flex items-center gap-2">
+              <select
+                value={String(foListLimit)}
+                onChange={(e) => {
+                  const nextValue = e.target.value === "all" ? "all" : Number(e.target.value);
+                  setFoListLimit(nextValue);
+                  setFoListPage(1);
+                }}
+                className="h-9 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400"
+              >
+                {[5, 10, 25, 50, 100].map((option) => (
+                  <option key={option} value={option}>
+                    {option} data
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </header>
+
+        {/* Table representation for Desktop screens */}
+        <div className="hidden lg:block overflow-x-auto rounded-lg border border-slate-800/80 bg-slate-950/40">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-900/80 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+              <tr>
+                <th className="px-5 py-3.5">No FO</th>
+                <th className="px-5 py-3.5">Order Date</th>
+                <th className="px-5 py-3.5">Deadline</th>
+                <th className="px-5 py-3.5">Update</th>
+                <th className="px-5 py-3.5">Customer</th>
+                <th className="px-5 py-3.5">Qty</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {foListTable.isLoading ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-xs text-slate-400 italic">
+                    Memuat daftar Form Order...
+                  </td>
+                </tr>
+              ) : null}
+
+              {!foListTable.isLoading && !foListTable.data?.items?.length ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-xs text-slate-400 italic">
+                    Tidak ada Form Order yang cocok dengan kriteria pencarian.
+                  </td>
+                </tr>
+              ) : null}
+
+              {foListTable.data?.items?.map((item: FoListRow) => (
+                <tr key={item.no_fo} className="hover:bg-slate-900/30 transition-colors">
+                  <td className="px-5 py-4 font-mono font-bold text-white tracking-wide">
+                    {item.no_fo}
+                  </td>
+                  <td className="px-5 py-4 text-slate-300">
+                    {formatIndonesianDate(item.order_date)}
+                  </td>
+                  <td className="px-5 py-4 text-rose-300 font-medium">
+                    {formatIndonesianDate(item.deadline_date)}
+                  </td>
+                  <td className="px-5 py-4 text-slate-400 text-xs font-mono">
+                    {formatIndonesianDateTime(item.datetime_lanjutan)}
+                  </td>
+                  <td className="px-5 py-4 text-slate-300 font-medium truncate max-w-[200px]" title={item.customer ?? ""}>
+                    {item.customer ?? "-"}
+                  </td>
+                  <td className="px-5 py-4 text-slate-300 font-mono font-semibold">
+                    {item.qty_order ?? "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                      item.status_lanjutan === "Produk diterima Customer"
+                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                        : item.status_lanjutan === "Selesai Packing, Siap diAmbil"
+                        ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
+                        : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                    }`}>
+                      {item.status_lanjutan ?? "-"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <button
+                      aria-label={`Lihat detail ${item.no_fo}`}
+                      className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
+                      onClick={() => setSelectedFo(item as any)}
+                    >
+                      <Eye size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* List view for Mobile & Tablet screens */}
+        <div className="lg:hidden space-y-3.5">
+          {foListTable.isLoading ? (
+            <div className="flex items-center justify-center py-12 gap-2 text-slate-400 italic text-xs border border-slate-800 bg-slate-950/20 rounded-lg">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+              <span>Memuat daftar Form Order...</span>
+            </div>
+          ) : null}
+
+          {!foListTable.isLoading && !foListTable.data?.items?.length ? (
+            <div className="text-center text-xs text-slate-400 italic py-12 border border-slate-800 bg-slate-950/20 rounded-lg">
+              Tidak ada Form Order yang cocok dengan kriteria pencarian.
+            </div>
+          ) : null}
+
+          {foListTable.data?.items?.map((item: FoListRow) => (
+            <div key={item.no_fo} className="rounded-lg border border-slate-800/80 bg-slate-950/30 p-4 space-y-3 shadow-md hover:border-slate-700/60 transition-colors">
+              <div className="flex justify-between items-start gap-3">
+                <div>
+                  <span className="block text-[9px] uppercase font-bold text-slate-500 tracking-wider">No FO</span>
+                  <span className="text-xs font-mono font-bold text-white tracking-wide block mt-0.5">{item.no_fo}</span>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+                    item.status_lanjutan === "Produk diterima Customer"
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      : item.status_lanjutan === "Selesai Packing, Siap diAmbil"
+                      ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
+                      : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                  }`}>
+                    {item.status_lanjutan ?? "-"}
+                  </span>
+                  <button
+                    aria-label={`Lihat detail ${item.no_fo}`}
+                    className="inline-flex size-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
+                    onClick={() => setSelectedFo(item as any)}
+                  >
+                    <Eye size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <span className="block text-[9px] uppercase font-bold text-slate-500 tracking-wider">Customer</span>
+                <span className="text-xs text-slate-200 font-semibold leading-relaxed block break-words" title={item.customer ?? ""}>
+                  {item.customer ?? "-"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 pt-2.5 border-t border-slate-800/40">
+                <div>
+                  <span className="block text-[9px] uppercase font-semibold text-slate-500">Order Date</span>
+                  <span className="text-[11px] text-slate-300 block mt-0.5 leading-relaxed">{formatIndonesianDate(item.order_date)}</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] uppercase font-semibold text-slate-500">Deadline</span>
+                  <span className="text-[11px] text-rose-300 font-medium block mt-0.5 leading-relaxed">{formatIndonesianDate(item.deadline_date)}</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] uppercase font-semibold text-slate-500">Qty Order</span>
+                  <span className="text-[11px] text-slate-300 font-mono font-bold block mt-0.5 leading-relaxed">{item.qty_order ?? "-"} Pcs</span>
+                </div>
+              </div>
+
+              {item.datetime_lanjutan && (
+                <div className="pt-2 border-t border-slate-800/40 flex justify-between items-center text-[10px] text-slate-500">
+                  <span>Last Update:</span>
+                  <span className="font-mono">{formatIndonesianDateTime(item.datetime_lanjutan)}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Paginator footer */}
+        <footer className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs text-slate-400">
+          <p>
+            {foListTable.isFetching
+              ? "Memperbarui data..."
+              : `Menampilkan ${foListTable.data?.items?.length ?? 0} dari total ${foListTable.data?.count ?? 0} data. Halaman ${foListTable.data?.page ?? foListPage} dari ${foListTable.data?.totalPages ?? 1}`}
+          </p>
+          <div className="flex gap-2">
+            <button
+              className="h-8 rounded-lg border border-slate-800 bg-slate-900 px-3 text-slate-300 hover:bg-slate-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              disabled={foListPage <= 1 || foListLimit === "all"}
+              onClick={() => setFoListPage((curr) => Math.max(curr - 1, 1))}
+            >
+              Previous
+            </button>
+            <button
+              className="h-8 rounded-lg border border-slate-800 bg-slate-900 px-3 text-slate-300 hover:bg-slate-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              disabled={foListLimit === "all" || foListPage >= (foListTable.data?.totalPages ?? 1)}
+              onClick={() => setFoListPage((curr) => curr + 1)}
+            >
+              Next
+            </button>
+          </div>
+        </footer>
+      </section>
 
       {isOutstandingOpen ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 p-4">
@@ -913,10 +1276,10 @@ export default function ProductionPipelinePage() {
                   <tr>
                     <th className="px-5 py-3 font-medium">No FO</th>
                     <th className="px-5 py-3 font-medium">Date</th>
+                    <th className="px-5 py-3 font-medium">Deadline</th>
+                    <th className="px-5 py-3 font-medium">Remaining</th>
                     <th className="px-5 py-3 font-medium">Customer</th>
                     <th className="px-5 py-3 font-medium">Status</th>
-                    <th className="px-5 py-3 font-medium">Deadline</th>
-                    <th className="px-5 py-3 font-medium">Date Deadline</th>
                     <th className="px-5 py-3 text-right font-medium">Action</th>
                   </tr>
                 </thead>
@@ -941,16 +1304,16 @@ export default function ProductionPipelinePage() {
                         {formatDate(item.doc_date)}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
-                        {item.customer ?? "-"}
-                      </td>
-                      <td className="px-5 py-4 text-slate-300">
-                        {item.status_lanjutan ?? item.status ?? "-"}
+                        {formatDate(item.deadline_date ?? null)}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.deadline_days ? `${item.deadline_days} Hari` : "-"}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
-                        {formatDate(item.deadline_date ?? null)}
+                        {item.customer ?? "-"}
+                      </td>
+                      <td className="px-5 py-4 text-slate-300">
+                        {item.status_lanjutan ?? item.status ?? "-"}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
@@ -1166,16 +1529,15 @@ export default function ProductionPipelinePage() {
                     ))}
                   </select>
                 </label>
-              </div>
-
-              <table className="hidden lg:table w-full min-w-[820px] text-sm">
+              </div>              <table className="hidden lg:table w-full min-w-[820px] text-sm">
                 <thead className="sticky top-0 bg-slate-900 text-left text-xs uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3 font-medium">No FO</th>
                     <th className="px-5 py-3 font-medium">Date</th>
+                    <th className="px-5 py-3 font-medium">Deadline</th>
+                    <th className="px-5 py-3 font-medium">Overdue</th>
                     <th className="px-5 py-3 font-medium">Customer</th>
                     <th className="px-5 py-3 font-medium">Status</th>
-                    <th className="px-5 py-3 font-medium">Date Deadline</th>
                     <th className="px-5 py-3 text-right font-medium">Action</th>
                   </tr>
                 </thead>
@@ -1184,7 +1546,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={6}
+                        colSpan={7}
                       >
                         Memuat data FO Overdue...
                       </td>
@@ -1199,14 +1561,17 @@ export default function ProductionPipelinePage() {
                       <td className="px-5 py-4 text-slate-300">
                         {formatDate(item.doc_date)}
                       </td>
+                      <td className="px-5 py-4 text-rose-300 font-semibold">
+                        {formatDate(item.deadline_date ?? null)}
+                      </td>
+                      <td className="px-5 py-4 text-red-400 font-bold">
+                        {item.deadline_days ? `${item.deadline_days} Hari` : "-"}
+                      </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.customer ?? "-"}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
-                      </td>
-                      <td className="px-5 py-4 text-rose-300 font-semibold">
-                        {formatDate(item.deadline_date ?? null)}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
@@ -1225,7 +1590,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={6}
+                        colSpan={7}
                       >
                         Tidak ada FO Overdue.
                       </td>
@@ -1233,7 +1598,6 @@ export default function ProductionPipelinePage() {
                   ) : null}
                 </tbody>
               </table>
-
               {/* Responsive Cards for Mobile/Tablet (< 1024px) */}
               <div className="block lg:hidden p-4 space-y-3">
                 {overdueTable.isLoading ? (
@@ -1298,6 +1662,16 @@ export default function ProductionPipelinePage() {
                       </div>
                       <span className="font-semibold text-rose-300">
                         {formatDate(item.deadline_date ?? null)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3.5 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
+                      <div className="text-slate-500 flex items-center gap-1.5">
+                        <AlertTriangle size={13} className="text-red-400" />
+                        <span>Deadline Overdue</span>
+                      </div>
+                      <span className="font-bold text-red-400 animate-pulse">
+                        {item.deadline_days ? `${item.deadline_days} Hari` : "-"}
                       </span>
                     </div>
 
@@ -1585,7 +1959,7 @@ export default function ProductionPipelinePage() {
 
       {selectedFo ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <section className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900/90 shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col max-h-[90vh] md:max-h-[85vh]">
+          <section className="w-full max-w-xl md:max-w-3xl lg:max-w-5xl rounded-xl border border-slate-800 bg-slate-900/90 shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col max-h-[90vh] md:max-h-[85vh]">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500"></div>
             
             <header className="flex items-start justify-between gap-4 p-6 pb-4 border-b border-slate-800 flex-shrink-0">
@@ -1607,6 +1981,40 @@ export default function ProductionPipelinePage() {
               </button>
             </header>
 
+            {/* Tabs Selector */}
+            <div className="flex border-b border-slate-800/80 bg-slate-950/20 px-6 flex-shrink-0">
+              <button
+                className={`py-3 text-xs font-semibold tracking-wider uppercase border-b-2 px-4 transition-all duration-300 ${
+                  activeTab === "summary"
+                    ? "border-cyan-500 text-cyan-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+                onClick={() => setActiveTab("summary")}
+              >
+                Order Summary
+              </button>
+              <button
+                className={`py-3 text-xs font-semibold tracking-wider uppercase border-b-2 px-4 transition-all duration-300 ${
+                  activeTab === "detail"
+                    ? "border-cyan-500 text-cyan-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+                onClick={() => setActiveTab("detail")}
+              >
+                Detail Order
+              </button>
+              <button
+                className={`py-3 text-xs font-semibold tracking-wider uppercase border-b-2 px-4 transition-all duration-300 ${
+                  activeTab === "job"
+                    ? "border-cyan-500 text-cyan-400 font-bold"
+                    : "border-transparent text-slate-400 hover:text-slate-200"
+                }`}
+                onClick={() => setActiveTab("job")}
+              >
+                Detail Job
+              </button>
+            </div>
+
             <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
               {foDetailQuery.isLoading ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -1622,7 +2030,9 @@ export default function ProductionPipelinePage() {
                   const data = foDetailQuery.data;
                   return (
                     <div className="space-y-4">
-                      {/* Ringkasan Utama: No FO & Qty */}
+                      {activeTab === "summary" && (
+                        <>
+                          {/* Ringkasan Utama: No FO & Qty */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="rounded-lg bg-slate-950 p-3 border border-slate-800/60">
                           <span className="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">No FO</span>
@@ -1853,10 +2263,379 @@ export default function ProductionPipelinePage() {
                               </div>
                             );
                           })()}
+
+                          {/* Step 4: Printing Step */}
+                          {data.Start_Print && (() => {
+                            const isCompleted = !!data.Print_ReadyPress;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Finish Printing" : "Printing";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Selesai Print: ${formatIndonesianDate(data.Print_ReadyPress)}` 
+                                      : `Mulai Print: ${formatIndonesianDate(data.Start_Print)}`}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Step 5: Cloth Preparation Step */}
+                          {data.Print_ReadyPress && (() => {
+                            const isCompleted = !!data.Kain_ReadyPress;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Cloth Ready to Press" : "Cloth Preparation";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Kain Siap Press: ${formatIndonesianDate(data.Kain_ReadyPress)}` 
+                                      : (data.Ambil_Kain 
+                                          ? `Ambil Kain: ${formatIndonesianDate(data.Ambil_Kain)}` 
+                                          : "Proses persiapan kain")}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Step 6: Press Step */}
+                          {data.Kain_ReadyPress && (() => {
+                            const isCompleted = !!data.Press_ReadyCut;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Finish Press" : "Start Press";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Selesai Press: ${formatIndonesianDate(data.Press_ReadyCut)}` 
+                                      : (data.Start_Press 
+                                          ? `Mulai Press: ${formatIndonesianDate(data.Start_Press)}` 
+                                          : "Proses pemotongan & pengepresan")}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Step 7: Cutting Step */}
+                          {data.Press_ReadyCut && (() => {
+                            const isCompleted = !!data.Cut_ReadyJahit;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Finish Cutting" : "Start Cutting";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Selesai Cutting: ${formatIndonesianDate(data.Cut_ReadyJahit)}` 
+                                      : (data.Start_Cut 
+                                          ? `Mulai Cutting: ${formatIndonesianDate(data.Start_Cut)}` 
+                                          : "Proses pemotongan bahan")}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Step 8: Sew Clothes Step */}
+                          {data.Cut_ReadyJahit && (() => {
+                            const isCompleted = !!data.Jahit_ReadyQC;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Finish Sew Clothes" : "Start Sew Clothes";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Selesai Jahit: ${formatIndonesianDate(data.Jahit_ReadyQC)}` 
+                                      : (data.Start_Jahit 
+                                          ? `Mulai Jahit: ${formatIndonesianDate(data.Start_Jahit)}` 
+                                          : "Proses penjahitan pakaian")}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Step 9: Quality Control Step */}
+                          {data.Jahit_ReadyQC && (() => {
+                            const isCompleted = !!data.FinalQC_Packiing;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Finish Quality Control" : "Start Quality Control";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Selesai QC: ${formatIndonesianDate(data.FinalQC_Packiing)}` 
+                                      : (data.Start_QC 
+                                          ? `Mulai QC: ${formatIndonesianDate(data.Start_QC)}` 
+                                          : "Proses penjaminan mutu")}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Step 10: Packing Step */}
+                          {data.FinalQC_Packiing && (() => {
+                            const isCompleted = !!data.QC_ReadyGudang;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Packed and ready to pickup" : "Packing Process";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Siap Diambil: ${formatIndonesianDate(data.QC_ReadyGudang)}` 
+                                      : `Proses Packing (sejak ${formatIndonesianDate(data.FinalQC_Packiing)})`}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Step 11: Pickup Step */}
+                          {data.QC_ReadyGudang && (() => {
+                            const isCompleted = !!data.Final_Cust;
+                            const isOngoing = !isCompleted;
+                            const label = isCompleted ? "Received by the customer" : "Waiting Customer Pickup";
+                            return (
+                              <div className="relative pl-8">
+                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                  isCompleted 
+                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                }`}>
+                                  {isCompleted ? (
+                                    <Check size={11} strokeWidth={3} />
+                                  ) : (
+                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className={`text-xs font-bold transition-colors ${
+                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                    }`}>
+                                      {label}
+                                    </h4>
+                                    {isCompleted ? (
+                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                        Selesai
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                        On Going
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">
+                                    {isCompleted 
+                                      ? `Diterima Pelanggan: ${formatIndonesianDate(data.Final_Cust)}` 
+                                      : `Menunggu Diambil (sejak ${formatIndonesianDate(data.QC_ReadyGudang)})`}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
-
-                      {/* Informasi Pembayaran & Keuangan */}
                       <div className="rounded-lg bg-slate-950/50 border border-slate-800/40 p-4 space-y-3.5">
                         <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase flex items-center gap-1.5 border-b border-slate-800/60 pb-2">
                           <Coins size={14} className="text-amber-400" />
@@ -1915,6 +2694,472 @@ export default function ProductionPipelinePage() {
                           {data.remark || "Tidak ada keterangan tambahan."}
                         </div>
                       </div>
+                        </>
+                      )}
+
+                      {activeTab === "detail" && (
+                        <div className="space-y-4">
+                          {/* Title & Filter Toggle Button */}
+                          <div className="flex justify-between items-center border-b border-slate-800/40 pb-2">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <ClipboardList size={14} className="text-cyan-400" />
+                              Daftar Item Detail
+                            </span>
+                            <button
+                              onClick={() => setShowDetailFilters(!showDetailFilters)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-300 ${
+                                showDetailFilters
+                                  ? "bg-cyan-500/10 border-cyan-500/35 text-cyan-400 hover:bg-cyan-500/20"
+                                  : "bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:text-white"
+                              }`}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                              </svg>
+                              {showDetailFilters ? "Sembunyikan Pencarian" : "Tampilkan Pencarian"}
+                            </button>
+                          </div>
+
+                          {/* Search & Limit Control - Collapsible */}
+                          {showDetailFilters && (
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3.5 rounded-lg border border-slate-800 bg-slate-950/30 transition-all duration-300">
+                              {/* Search Input */}
+                              <div className="relative flex-1">
+                                <input
+                                  type="text"
+                                  placeholder="Cari detail item..."
+                                  value={detailSearch}
+                                  onChange={(e) => {
+                                    setDetailSearch(e.target.value);
+                                    setDetailPage(1);
+                                  }}
+                                  className="w-full rounded-lg border border-slate-800 bg-slate-950/80 px-3.5 py-1.5 pl-9 text-xs text-slate-300 placeholder-slate-500 focus:border-cyan-500/80 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 transition-all duration-300"
+                                />
+                                <span className="absolute left-3 top-2 text-slate-500">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-3.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.602 10.602Z" />
+                                  </svg>
+                                </span>
+                                {detailSearch && (
+                                  <button
+                                    onClick={() => {
+                                      setDetailSearch("");
+                                      setDetailPage(1);
+                                    }}
+                                    className="absolute right-3 top-2 text-slate-400 hover:text-white transition-colors"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Page Size Select */}
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Tampil:</span>
+                                <select
+                                  value={detailLimit}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setDetailLimit(val === "all" ? "all" : Number(val));
+                                    setDetailPage(1);
+                                  }}
+                                  className="rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-300 focus:border-cyan-500 focus:outline-none transition-all duration-300"
+                                >
+                                  <option value={5}>5</option>
+                                  <option value={10}>10</option>
+                                  <option value={25}>25</option>
+                                  <option value={50}>50</option>
+                                  <option value={100}>100</option>
+                                </select>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Table view for Desktop screens */}
+                          <div className="hidden lg:block overflow-x-auto rounded-lg border border-slate-800/80 bg-slate-950/30 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                            <table className="w-full text-left border-collapse min-w-[850px]">
+                              <thead>
+                                <tr className="border-b border-slate-800 bg-slate-950/70 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                  <th className="px-4 py-3 font-semibold min-w-[280px]">Detail Item</th>
+                                  <th className="px-4 py-3 font-semibold">Produk</th>
+                                  <th className="px-4 py-3 font-semibold">Model</th>
+                                  <th className="px-4 py-3 font-semibold">Bahan</th>
+                                  <th className="px-4 py-3 font-semibold">Size</th>
+                                  <th className="px-4 py-3 text-right font-semibold w-24">Qty (Pcs)</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/55 text-xs text-slate-300">
+                                {foDetailItemsQuery.isLoading ? (
+                                  <tr>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 italic">
+                                      <div className="flex items-center justify-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+                                        <span>Memuat detail item...</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ) : foDetailItemsQuery.isError ? (
+                                  <tr>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-rose-400 font-semibold">
+                                      Gagal memuat detail item: {foDetailItemsQuery.error instanceof Error ? foDetailItemsQuery.error.message : "Error"}
+                                    </td>
+                                  </tr>
+                                ) : (foDetailItemsQuery.data?.items ?? []).length === 0 ? (
+                                  <tr>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 italic">
+                                      Tidak ada item detail ditemukan.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  (foDetailItemsQuery.data?.items ?? []).map((item) => (
+                                    <tr key={item.id} className="hover:bg-slate-800/20 transition-colors">
+                                      <td className="px-4 py-2.5 font-sans min-w-[280px] break-all">{item.detail_item || "-"}</td>
+                                      <td className="px-4 py-2.5 text-slate-300 whitespace-nowrap">{item.produk || "-"}</td>
+                                      <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">{item.model || "-"}</td>
+                                      <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">{item.bahan || "-"}</td>
+                                      <td className="px-4 py-2.5 whitespace-nowrap">
+                                        {item.size ? (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-900 border border-slate-800/80 text-slate-300 font-mono">
+                                            {item.size.trim()}
+                                          </span>
+                                        ) : (
+                                          "-"
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-right font-bold text-emerald-400 tabular-nums">
+                                        {item.qty}
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* List view for Mobile & Tablet screens */}
+                          <div className="lg:hidden space-y-3">
+                            {foDetailItemsQuery.isLoading ? (
+                              <div className="flex items-center justify-center py-8 gap-2 text-slate-500 italic text-xs">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+                                <span>Memuat detail item...</span>
+                              </div>
+                            ) : foDetailItemsQuery.isError ? (
+                              <div className="text-center text-rose-400 py-8 text-xs font-semibold">
+                                Gagal memuat detail item: {foDetailItemsQuery.error instanceof Error ? foDetailItemsQuery.error.message : "Error"}
+                              </div>
+                            ) : (foDetailItemsQuery.data?.items ?? []).length === 0 ? (
+                              <div className="text-slate-500 py-8 text-center italic text-xs">
+                                Tidak ada item detail ditemukan.
+                              </div>
+                            ) : (
+                              (foDetailItemsQuery.data?.items ?? []).map((item) => (
+                                <div key={item.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-4 space-y-2.5">
+                                  <div className="flex justify-between items-start gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Detail Item</span>
+                                      <span className="text-xs font-semibold text-slate-200 font-sans block mt-0.5 break-words leading-relaxed">{item.detail_item || "-"}</span>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Qty</span>
+                                      <span className="block text-xs font-bold text-emerald-400 mt-0.5">{item.qty} Pcs</span>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/40">
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Produk</span>
+                                      <span className="text-xs text-slate-300 block mt-0.5 break-words">{item.produk || "-"}</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Model</span>
+                                      <span className="text-xs text-slate-300 block mt-0.5 break-words">{item.model || "-"}</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Bahan</span>
+                                      <span className="text-xs text-slate-300 block mt-0.5 break-words">{item.bahan || "-"}</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Size</span>
+                                      <span className="block mt-1">
+                                        {item.size ? (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-900 border border-slate-800 text-slate-300 font-mono">
+                                            {item.size.trim()}
+                                          </span>
+                                        ) : (
+                                          "-"
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+
+                          {/* Pagination Controls */}
+                          {foDetailItemsQuery.data && foDetailItemsQuery.data.totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t border-slate-800/60 pt-4 flex-shrink-0">
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                Menampilkan Halaman <span className="font-semibold text-slate-300">{foDetailItemsQuery.data.page}</span> dari <span className="font-semibold text-slate-300">{foDetailItemsQuery.data.totalPages}</span>
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  disabled={detailPage === 1}
+                                  onClick={() => setDetailPage((p) => Math.max(1, p - 1))}
+                                  className="px-2.5 py-1 text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded transition-all duration-300"
+                                >
+                                  Prev
+                                </button>
+                                <button
+                                  disabled={detailPage >= foDetailItemsQuery.data.totalPages}
+                                  onClick={() => setDetailPage((p) => p + 1)}
+                                  className="px-2.5 py-1 text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded transition-all duration-300"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {activeTab === "job" && (
+                        <div className="space-y-4">
+                          {/* Title & Filter Toggle Button */}
+                          <div className="flex justify-between items-center border-b border-slate-800/40 pb-2">
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <Activity size={14} className="text-cyan-400 animate-pulse" />
+                              Daftar Detail Pekerjaan
+                            </span>
+                            <button
+                              onClick={() => setShowJobFilters(!showJobFilters)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-300 ${
+                                showJobFilters
+                                  ? "bg-cyan-500/10 border-cyan-500/35 text-cyan-400 hover:bg-cyan-500/20"
+                                  : "bg-slate-800/60 border-slate-700/60 text-slate-300 hover:bg-slate-800 hover:text-white"
+                              }`}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                              </svg>
+                              {showJobFilters ? "Sembunyikan Pencarian" : "Tampilkan Pencarian"}
+                            </button>
+                          </div>
+
+                          {/* Search & Limit Control - Collapsible */}
+                          {showJobFilters && (
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3.5 rounded-lg border border-slate-800 bg-slate-950/30 transition-all duration-300">
+                              {/* Search Input */}
+                              <div className="relative flex-1">
+                                <input
+                                  type="text"
+                                  placeholder="Cari no job, pegawai, status, jobdesk..."
+                                  value={jobSearch}
+                                  onChange={(e) => {
+                                    setJobSearch(e.target.value);
+                                    setJobPage(1);
+                                  }}
+                                  className="w-full rounded-lg border border-slate-800 bg-slate-950/80 px-3.5 py-1.5 pl-9 text-xs text-slate-300 placeholder-slate-500 focus:border-cyan-500/80 focus:outline-none focus:ring-1 focus:ring-cyan-500/30 transition-all duration-300"
+                                />
+                                <span className="absolute left-3 top-2 text-slate-500">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-3.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.602 10.602Z" />
+                                  </svg>
+                                </span>
+                                {jobSearch && (
+                                  <button
+                                    onClick={() => {
+                                      setJobSearch("");
+                                      setJobPage(1);
+                                    }}
+                                    className="absolute right-3 top-2 text-slate-400 hover:text-white transition-colors"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Page Size Select */}
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Tampil:</span>
+                                <select
+                                  value={jobLimit}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setJobLimit(val === "all" ? "all" : Number(val));
+                                    setJobPage(1);
+                                  }}
+                                  className="rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-300 focus:border-cyan-500 focus:outline-none transition-all duration-300"
+                                >
+                                  <option value={5}>5</option>
+                                  <option value={10}>10</option>
+                                  <option value={25}>25</option>
+                                  <option value={50}>50</option>
+                                  <option value={100}>100</option>
+                                </select>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Table view for Desktop screens */}
+                          <div className="hidden lg:block overflow-x-auto rounded-lg border border-slate-800/80 bg-slate-950/30 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                            <table className="w-full text-left border-collapse min-w-[850px]">
+                              <thead>
+                                <tr className="border-b border-slate-800 bg-slate-950/70 text-[10px] font-bold uppercase tracking-wider text-slate-400 font-sans">
+                                  <th className="px-4 py-3 font-semibold">No Job</th>
+                                  <th className="px-4 py-3 font-semibold">Datetime Awal</th>
+                                  <th className="px-4 py-3 font-semibold">Status Awal</th>
+                                  <th className="px-4 py-3 font-semibold">Datetime Lanjutan</th>
+                                  <th className="px-4 py-3 font-semibold">Status Lanjutan</th>
+                                  <th className="px-4 py-3 font-semibold">Pegawai</th>
+                                  <th className="px-4 py-3 font-semibold">Jobdesk</th>
+                                  <th className="px-4 py-3 font-semibold">Keterangan</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/55 text-xs text-slate-300">
+                                {foJobDetailsQuery.isLoading ? (
+                                  <tr>
+                                    <td colSpan={8} className="px-4 py-8 text-center text-slate-500 italic">
+                                      <div className="flex items-center justify-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+                                        <span>Memuat detail job...</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ) : foJobDetailsQuery.isError ? (
+                                  <tr>
+                                    <td colSpan={8} className="px-4 py-8 text-center text-rose-400 font-semibold">
+                                      Gagal memuat detail job: {foJobDetailsQuery.error instanceof Error ? foJobDetailsQuery.error.message : "Error"}
+                                    </td>
+                                  </tr>
+                                ) : (foJobDetailsQuery.data?.items ?? []).length === 0 ? (
+                                  <tr>
+                                    <td colSpan={8} className="px-4 py-8 text-center text-slate-500 italic">
+                                      Tidak ada item job ditemukan.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  (foJobDetailsQuery.data?.items ?? []).map((job) => (
+                                    <tr key={job.id} className="hover:bg-slate-800/20 transition-colors">
+                                      <td className="px-4 py-2.5 font-mono text-cyan-300 font-semibold whitespace-nowrap">{job.no_job || "-"}</td>
+                                      <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">{formatIndonesianDateTime(job.datetime_awal)}</td>
+                                      <td className="px-4 py-2.5 text-slate-300">{job.status_awal || "-"}</td>
+                                      <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">{formatIndonesianDateTime(job.datetime_lanjutan)}</td>
+                                      <td className="px-4 py-2.5 text-slate-300">{job.status_lanjutan || "-"}</td>
+                                      <td className="px-4 py-2.5 font-semibold text-slate-200 whitespace-nowrap">{job.username || "-"}</td>
+                                      <td className="px-4 py-2.5 whitespace-nowrap">
+                                        {job.jobdesk ? (
+                                          <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 uppercase tracking-wide font-mono">
+                                            {job.jobdesk}
+                                          </span>
+                                        ) : (
+                                          "-"
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-slate-400 break-all max-w-[200px]">{job.ket || "-"}</td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* List view for Mobile & Tablet screens */}
+                          <div className="lg:hidden space-y-3">
+                            {foJobDetailsQuery.isLoading ? (
+                              <div className="flex items-center justify-center py-8 gap-2 text-slate-500 italic text-xs">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+                                <span>Memuat detail job...</span>
+                              </div>
+                            ) : foJobDetailsQuery.isError ? (
+                              <div className="text-center text-rose-400 py-8 text-xs font-semibold">
+                                Gagal memuat detail job: {foJobDetailsQuery.error instanceof Error ? foJobDetailsQuery.error.message : "Error"}
+                              </div>
+                            ) : (foJobDetailsQuery.data?.items ?? []).length === 0 ? (
+                              <div className="text-slate-500 py-8 text-center italic text-xs">
+                                Tidak ada item job ditemukan.
+                              </div>
+                            ) : (
+                              (foJobDetailsQuery.data?.items ?? []).map((job) => (
+                                <div key={job.id} className="rounded-lg border border-slate-800 bg-slate-950/40 p-4 space-y-2.5">
+                                  <div className="flex justify-between items-start gap-3">
+                                    <div>
+                                      <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">No Job</span>
+                                      <span className="text-xs font-mono text-cyan-300 font-semibold block mt-0.5">{job.no_job || "-"}</span>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Pegawai</span>
+                                      <span className="block text-xs font-semibold text-slate-200 mt-0.5">{job.username || "-"}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/40">
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Datetime Awal</span>
+                                      <span className="text-[11px] text-slate-400 block mt-0.5 leading-relaxed">{formatIndonesianDateTime(job.datetime_awal)}</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Datetime Lanjutan</span>
+                                      <span className="text-[11px] text-slate-400 block mt-0.5 leading-relaxed">{formatIndonesianDateTime(job.datetime_lanjutan)}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2 pt-2 border-t border-slate-800/40">
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Status Awal</span>
+                                      <span className="text-xs text-slate-300 block mt-0.5 leading-relaxed">{job.status_awal || "-"}</span>
+                                    </div>
+                                    <div>
+                                      <span className="block text-[9px] uppercase font-semibold text-slate-500">Status Lanjutan</span>
+                                      <span className="text-xs text-slate-300 block mt-0.5 leading-relaxed">{job.status_lanjutan || "-"}</span>
+                                    </div>
+                                    <div className="flex justify-between items-start gap-3 pt-1">
+                                      <div className="flex-1">
+                                        <span className="block text-[9px] uppercase font-semibold text-slate-500">Keterangan</span>
+                                        <span className="text-xs text-slate-400 block mt-0.5 break-words leading-relaxed">{job.ket || "-"}</span>
+                                      </div>
+                                      <div className="flex-shrink-0 text-right">
+                                        <span className="block text-[9px] uppercase font-semibold text-slate-500 mb-0.5">Jobdesk</span>
+                                        {job.jobdesk ? (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 uppercase tracking-wide font-mono">
+                                            {job.jobdesk}
+                                          </span>
+                                        ) : (
+                                          "-"
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+
+                          {/* Pagination Controls */}
+                          {foJobDetailsQuery.data && foJobDetailsQuery.data.totalPages > 1 && (
+                            <div className="flex items-center justify-between border-t border-slate-800/60 pt-4 flex-shrink-0">
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                Menampilkan Halaman <span className="font-semibold text-slate-300">{foJobDetailsQuery.data.page}</span> dari <span className="font-semibold text-slate-300">{foJobDetailsQuery.data.totalPages}</span>
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  disabled={jobPage === 1}
+                                  onClick={() => setJobPage((p) => Math.max(1, p - 1))}
+                                  className="px-2.5 py-1 text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded transition-all duration-300"
+                                >
+                                  Prev
+                                </button>
+                                <button
+                                  disabled={jobPage >= foJobDetailsQuery.data.totalPages}
+                                  onClick={() => setJobPage((p) => p + 1)}
+                                  className="px-2.5 py-1 text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded transition-all duration-300"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()

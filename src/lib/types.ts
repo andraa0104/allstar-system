@@ -113,4 +113,76 @@ export type FoDetailData = {
   Desain_Ready: string | null;
   Start_Layout: string | null;
   Layout_Ready: string | null;
+  Start_Print: string | null;
+  Print_ReadyPress: string | null;
+  Ambil_Kain: string | null;
+  Kain_ReadyPress: string | null;
+  Start_Press: string | null;
+  Press_ReadyCut: string | null;
+  Start_Cut: string | null;
+  Cut_ReadyJahit: string | null;
+  Start_Jahit: string | null;
+  Jahit_ReadyQC: string | null;
+  Start_QC: string | null;
+  FinalQC_Packiing: string | null;
+  Final_Cust: string | null;
+};
+
+export type FoDetailItemRow = {
+  id: number;
+  no_fo: string;
+  detail_item: string;
+  qty: number;
+  produk: string | null;
+  model: string | null;
+  bahan: string | null;
+  size: string | null;
+};
+
+export type FoDetailItemsResponse = {
+  count: number;
+  items: FoDetailItemRow[];
+  page: number;
+  limit: number | "all";
+  totalPages: number;
+};
+
+export type FoJobDetailRow = {
+  id: number;
+  no_job: string;
+  no_fo: string;
+  datetime_awal: string | null;
+  status_awal: string | null;
+  datetime_lanjutan: string | null;
+  username: string | null;
+  jobdesk: string | null;
+  ket: string | null;
+  status_lanjutan: string | null;
+};
+
+export type FoJobDetailsResponse = {
+  count: number;
+  items: FoJobDetailRow[];
+  page: number;
+  limit: number | "all";
+  totalPages: number;
+};
+
+export type FoListRow = {
+  no_fo: string;
+  order_date: string | null;
+  doc_date: string | null;
+  deadline_date: string | null;
+  datetime_lanjutan: string | null;
+  customer: string | null;
+  qty_order: number | null;
+  status_lanjutan: string | null;
+};
+
+export type FoListResponse = {
+  count: number;
+  items: FoListRow[];
+  page: number;
+  limit: number | "all";
+  totalPages: number;
 };
