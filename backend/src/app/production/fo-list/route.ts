@@ -39,12 +39,12 @@ export async function GET(request: Request) {
 
     const uniqueFoSql = `
       SELECT
-        TRIM(c.no_fo) AS no_fo,
-        c.order_date AS order_date,
-        c.doc_date AS doc_date,
+        TRIM(k.no_fo) AS no_fo,
+        k.order_date AS order_date,
+        k.doc_date AS doc_date,
         c.datetime_lanjutan AS datetime_lanjutan,
-        c.customer AS customer,
-        c.qty_order AS qty_order,
+        k.customer AS customer,
+        k.qty_order AS qty_order,
         c.status_lanjutan AS status_lanjutan,
         k.deadline_date AS deadline_date,
         k.uang_muka AS uang_muka,
@@ -68,14 +68,18 @@ export async function GET(request: Request) {
         k.Start_QC AS Start_QC,
         k.QC_ReadyGudang AS QC_ReadyGudang,
         k.Final_Cust AS Final_Cust
-      FROM tb_control c
-      INNER JOIN (
-        SELECT MAX(id) AS max_id
-        FROM tb_control
-        WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
-        GROUP BY TRIM(no_fo)
-      ) latest ON c.id = latest.max_id
-      LEFT JOIN tb_kdfo k ON TRIM(c.no_fo) = TRIM(k.no_fo)
+      FROM tb_kdfo k
+      LEFT JOIN (
+        SELECT c1.*
+        FROM tb_control c1
+        INNER JOIN (
+          SELECT MAX(id) AS max_id
+          FROM tb_control
+          WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
+          GROUP BY TRIM(no_fo)
+        ) c2 ON c1.id = c2.max_id
+      ) c ON TRIM(k.no_fo) = TRIM(c.no_fo)
+      WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
     let statusClause = "1=1";

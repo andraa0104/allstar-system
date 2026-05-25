@@ -474,7 +474,7 @@ export default function ProductionPipelinePage() {
   const [foListLimit, setFoListLimit] = useState<number | "all">(5);
   const [foListSearch, setFoListSearch] = useState("");
   const [foListSearchBy, setFoListSearchBy] = useState<string>("no_fo");
-  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(0);
+  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(1);
 
   const outstandingSummary = useQuery({
     queryKey: ["fo-outstanding-summary"],
