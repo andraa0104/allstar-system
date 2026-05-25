@@ -85,6 +85,34 @@ function formatIndonesianDateTime(input: string | Date | null) {
     return "-";
   }
 
+  let dateStr = "";
+  if (input instanceof Date) {
+    dateStr = input.toISOString();
+  } else {
+    dateStr = String(input);
+  }
+
+  // Normalize separator
+  dateStr = dateStr.replace("T", " ");
+
+  // Expected formats: "2026-05-12 16:52:00" or "2026-05-12 16:52:00.000000"
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+  if (match) {
+    const year = match[1];
+    const monthIndex = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    const hour = match[4];
+    const minute = match[5];
+
+    const months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    const monthName = months[monthIndex] || match[2];
+
+    return `${day} ${monthName} ${year} pukul ${hour}:${minute}`;
+  }
+
   const date = new Date(input);
   if (Number.isNaN(date.getTime())) {
     return String(input);
@@ -105,6 +133,28 @@ function formatIndonesianDateTime(input: string | Date | null) {
 function formatIndonesianDate(input: string | Date | null) {
   if (!input) {
     return "-";
+  }
+
+  let dateStr = "";
+  if (input instanceof Date) {
+    dateStr = input.toISOString();
+  } else {
+    dateStr = String(input);
+  }
+
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const year = match[1];
+    const monthIndex = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+
+    const months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    const monthName = months[monthIndex] || match[2];
+
+    return `${day} ${monthName} ${year}`;
   }
 
   const date = new Date(input);

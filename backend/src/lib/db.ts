@@ -17,7 +17,8 @@ export const pool =
     connectionLimit: 10,
     queueLimit: 0,
     namedPlaceholders: true,
-    timezone: "Z",
+    timezone: "local",
+    dateStrings: true,
   });
 
 if (process.env.NODE_ENV !== "production") {
