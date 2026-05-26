@@ -202,6 +202,9 @@ export const api = {
     page?: number;
     limit?: number | "all";
     search?: string;
+    filter_type?: string;
+    start_date?: string;
+    end_date?: string;
   }) {
     const searchParams = new URLSearchParams();
 
@@ -213,6 +216,15 @@ export const api = {
     }
     if (params?.search) {
       searchParams.set("search", params.search);
+    }
+    if (params?.filter_type) {
+      searchParams.set("filter_type", params.filter_type);
+    }
+    if (params?.start_date) {
+      searchParams.set("start_date", params.start_date);
+    }
+    if (params?.end_date) {
+      searchParams.set("end_date", params.end_date);
     }
 
     const query = searchParams.toString();

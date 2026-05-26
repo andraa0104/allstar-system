@@ -22,6 +22,9 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const search = url.searchParams.get("search")?.trim() ?? "";
+    const filterType = url.searchParams.get("filter_type")?.trim() ?? "today";
+    const startDate = url.searchParams.get("start_date")?.trim() ?? "";
+    const endDate = url.searchParams.get("end_date")?.trim() ?? "";
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
     const isAllData = rawLimit === "all";
@@ -31,15 +34,14 @@ export async function GET(request: Request) {
     const page = Math.max(requestedPage || 1, 1);
     const offset = limit ? (page - 1) * limit : 0;
 
-    const baseWhereClause = `c.no_fo IS NOT NULL AND TRIM(c.no_fo) <> ''`;
-
     const uniqueFoSql = `
       SELECT
         TRIM(k.no_fo) AS no_fo,
         k.order_date AS doc_date,
         k.customer AS customer,
         c.status_lanjutan AS status_lanjutan,
-        k.QC_ReadyGudang AS QC_ReadyGudang
+        k.QC_ReadyGudang AS QC_ReadyGudang,
+        k.Final_Cust AS Final_Cust
       FROM tb_kdfo k
       LEFT JOIN (
         SELECT c1.*
@@ -54,20 +56,39 @@ export async function GET(request: Request) {
       WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
+    // Completion date is either Final_Cust (if delivered) or QC_ReadyGudang (if ready in warehouse)
+    const completedDateExpr = "COALESCE(unique_fo.Final_Cust, unique_fo.QC_ReadyGudang)";
+
+    let dateClause = "1=1";
+    const params: any = {
+      search,
+      searchPattern: `%${search}%`,
+    };
+
+    if (filterType === "today") {
+      dateClause = `DATE(${completedDateExpr}) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))`;
+    } else if (filterType === "this_week") {
+      dateClause = `YEARWEEK(${completedDateExpr}, 1) = YEARWEEK(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR), 1)`;
+    } else if (filterType === "this_month") {
+      dateClause = `YEAR(${completedDateExpr}) = YEAR(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR)) AND MONTH(${completedDateExpr}) = MONTH(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))`;
+    } else if (filterType === "this_year") {
+      dateClause = `YEAR(${completedDateExpr}) = YEAR(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))`;
+    } else if (filterType === "date_range" && startDate && endDate) {
+      dateClause = `DATE(${completedDateExpr}) >= :startDate AND DATE(${completedDateExpr}) <= :endDate`;
+      params.startDate = startDate;
+      params.endDate = endDate;
+    }
+
     const searchWhereClause = `(
       :search = ''
       OR unique_fo.no_fo LIKE :searchPattern
       OR unique_fo.customer LIKE :searchPattern
     )
     AND (
-      unique_fo.QC_ReadyGudang IS NOT NULL
-      AND TRIM(unique_fo.QC_ReadyGudang) <> ''
-    )`;
-
-    const params = {
-      search,
-      searchPattern: `%${search}%`,
-    };
+      unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil'
+      OR unique_fo.status_lanjutan = 'Produk diterima Customer'
+    )
+    AND (${dateClause})`;
 
     const [countRows] = await pool.execute<CompleteCountRow[]>(
       `SELECT COUNT(*) AS total
@@ -80,7 +101,7 @@ export async function GET(request: Request) {
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const [items] = await pool.execute<CompleteRow[]>(
       `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status,
-              QC_ReadyGudang
+              QC_ReadyGudang, Final_Cust
        FROM (${uniqueFoSql}) AS unique_fo
        WHERE ${searchWhereClause}
        ORDER BY unique_fo.no_fo DESC, unique_fo.doc_date DESC

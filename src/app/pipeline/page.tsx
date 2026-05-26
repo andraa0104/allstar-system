@@ -497,6 +497,9 @@ export default function ProductionPipelinePage() {
   const [completePage, setCompletePage] = useState(1);
   const [completeLimit, setCompleteLimit] = useState<number | "all">(5);
   const [completeSearch, setCompleteSearch] = useState("");
+  const [completeFilterType, setCompleteFilterType] = useState<string>("today");
+  const [completeStartDate, setCompleteStartDate] = useState<string>("");
+  const [completeEndDate, setCompleteEndDate] = useState<string>("");
 
   // States for general FO List
   const [foListPage, setFoListPage] = useState(1);
@@ -521,8 +524,8 @@ export default function ProductionPipelinePage() {
   });
 
   const completeSummary = useQuery({
-    queryKey: ["fo-complete-summary"],
-    queryFn: () => api.getFoComplete({ page: 1, limit: 5 }),
+    queryKey: ["fo-complete-summary", completeFilterType, completeStartDate, completeEndDate],
+    queryFn: () => api.getFoComplete({ page: 1, limit: 5, filter_type: completeFilterType, start_date: completeStartDate, end_date: completeEndDate }),
   });
 
   const outstandingTable = useQuery({
@@ -616,12 +619,15 @@ export default function ProductionPipelinePage() {
   );
 
   const completeTable = useQuery({
-    queryKey: ["fo-complete", completePage, completeLimit, completeSearch],
+    queryKey: ["fo-complete", completePage, completeLimit, completeSearch, completeFilterType, completeStartDate, completeEndDate],
     queryFn: () =>
       api.getFoComplete({
         page: completePage,
         limit: completeLimit,
         search: completeSearch,
+        filter_type: completeFilterType,
+        start_date: completeStartDate,
+        end_date: completeEndDate,
       }),
     enabled: isCompleteOpen,
   });
@@ -788,13 +794,88 @@ export default function ProductionPipelinePage() {
 
           if (isComplete) {
             return (
-              <button
+              <div
                 key={card.title}
-                className="group rounded-lg border border-slate-800 bg-slate-900/70 p-5 text-left shadow-sm shadow-slate-950/20 hover:border-cyan-400/40 hover:bg-slate-900"
-                onClick={() => setIsCompleteOpen(true)}
+                className="rounded-lg border border-slate-800 bg-slate-900/70 p-5 text-left shadow-sm shadow-slate-950/20 hover:border-cyan-400/30 hover:bg-slate-900/90 relative group flex flex-col justify-between min-h-[190px] transition-all duration-300"
               >
-                {content}
-              </button>
+                {/* Header & Icon */}
+                <div className="flex items-start justify-between gap-4">
+                  <div
+                    className={`flex size-11 items-center justify-center rounded-lg bg-slate-950 ${card.tone}`}
+                  >
+                    <Icon size={22} />
+                  </div>
+                  <button
+                    onClick={() => setIsCompleteOpen(true)}
+                    className="flex size-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 hover:bg-cyan-500/10 hover:text-cyan-400 hover:border-cyan-500/30 transition shadow-inner"
+                    title="Lihat Detail Modal"
+                  >
+                    <ArrowRight size={18} />
+                  </button>
+                </div>
+
+                {/* Filter Selector */}
+                <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+                  <select
+                    value={completeFilterType}
+                    onChange={(e) => {
+                      setCompleteFilterType(e.target.value);
+                      if (e.target.value !== "date_range") {
+                        setCompleteStartDate("");
+                        setCompleteEndDate("");
+                      }
+                      setCompletePage(1);
+                    }}
+                    className="w-32 h-7 rounded-md border border-slate-800 bg-slate-950 px-1.5 text-[11px] text-slate-300 outline-none focus:border-cyan-500/40 transition"
+                  >
+                    <option value="today">Hari Ini</option>
+                    <option value="this_week">Minggu Ini</option>
+                    <option value="this_month">Bulan Ini</option>
+                    <option value="this_year">Tahun Ini</option>
+                    <option value="date_range">Range Tanggal</option>
+                    <option value="all">Semua Data</option>
+                  </select>
+
+                  {completeFilterType === "date_range" && (
+                    <div className="mt-2 flex gap-1 items-center max-w-[200px]">
+                      <input
+                        type="date"
+                        value={completeStartDate}
+                        onChange={(e) => {
+                          setCompleteStartDate(e.target.value);
+                          setCompletePage(1);
+                        }}
+                        className="w-24 h-6 rounded-md border border-slate-800 bg-slate-950 px-1 text-[9px] text-slate-300 outline-none focus:border-cyan-500/40"
+                      />
+                      <span className="text-[9px] text-slate-500">to</span>
+                      <input
+                        type="date"
+                        value={completeEndDate}
+                        onChange={(e) => {
+                          setCompleteEndDate(e.target.value);
+                          setCompletePage(1);
+                        }}
+                        className="w-24 h-6 rounded-md border border-slate-800 bg-slate-950 px-1 text-[9px] text-slate-300 outline-none focus:border-cyan-500/40"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Count & Title */}
+                <div 
+                  className="mt-4 flex items-end justify-between gap-4 cursor-pointer pt-3 border-t border-slate-800/40" 
+                  onClick={() => setIsCompleteOpen(true)}
+                >
+                  <h2 className="text-lg font-semibold text-white">
+                    {card.title}
+                  </h2>
+                  <span className="text-3xl font-bold text-emerald-400 font-mono tracking-tight leading-none">
+                    {completeSummary.isLoading
+                      ? "-"
+                      : completeSummary.data?.count ?? 0}
+                  </span>
+                </div>
+              </div>
             );
           }
 
@@ -1888,8 +1969,8 @@ export default function ProductionPipelinePage() {
             </header>
 
             <div className="overflow-auto flex-1">
-              <div className="flex flex-col gap-3 border-b border-slate-800 px-5 py-4 md:flex-row md:items-center md:justify-between">
-                <label className="grid gap-2 text-sm md:w-80">
+              <div className="flex flex-col gap-3 border-b border-slate-800 px-5 py-4 md:flex-row md:items-center">
+                <label className="grid gap-2 text-sm md:w-60">
                   <span className="font-medium text-slate-300">Search</span>
                   <input
                     value={completeSearch}
@@ -1903,6 +1984,58 @@ export default function ProductionPipelinePage() {
                 </label>
 
                 <label className="grid gap-2 text-sm md:w-44">
+                  <span className="font-medium text-slate-300">Filter Tanggal</span>
+                  <select
+                    value={completeFilterType}
+                    onChange={(event) => {
+                      setCompleteFilterType(event.target.value);
+                      if (event.target.value !== "date_range") {
+                        setCompleteStartDate("");
+                        setCompleteEndDate("");
+                      }
+                      setCompletePage(1);
+                    }}
+                    className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-white outline-none focus:border-cyan-400"
+                  >
+                    <option value="today">Hari Ini</option>
+                    <option value="this_week">Minggu Ini</option>
+                    <option value="this_month">Bulan Ini</option>
+                    <option value="this_year">Tahun Ini</option>
+                    <option value="date_range">Range Tanggal</option>
+                    <option value="all">Semua Data</option>
+                  </select>
+                </label>
+
+                {completeFilterType === "date_range" && (
+                  <>
+                    <label className="grid gap-2 text-sm md:w-36">
+                      <span className="font-medium text-slate-300">Mulai</span>
+                      <input
+                        type="date"
+                        value={completeStartDate}
+                        onChange={(e) => {
+                          setCompleteStartDate(e.target.value);
+                          setCompletePage(1);
+                        }}
+                        className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-white outline-none focus:border-cyan-400"
+                      />
+                    </label>
+                    <label className="grid gap-2 text-sm md:w-36">
+                      <span className="font-medium text-slate-300">Sampai</span>
+                      <input
+                        type="date"
+                        value={completeEndDate}
+                        onChange={(e) => {
+                          setCompleteEndDate(e.target.value);
+                          setCompletePage(1);
+                        }}
+                        className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-white outline-none focus:border-cyan-400"
+                      />
+                    </label>
+                  </>
+                )}
+
+                <label className="grid gap-2 text-sm md:w-32 md:ml-auto">
                   <span className="font-medium text-slate-300">Tampilkan</span>
                   <select
                     value={String(completeLimit)}
