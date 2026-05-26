@@ -2308,7 +2308,7 @@ export default function ProductionPipelinePage() {
                             {/* Step 3: Layout Step */}
                             {(() => {
                               const isCompleted = !!data.Layout_Ready;
-                              const isOngoing = !isCompleted && !!data.Desain_Ready;
+                              const isOngoing = !isCompleted && (!!data.Desain_Ready || !!data.Start_Layout);
                               const label = isCompleted ? "Layout Ready" : "Start Layout";
                               
                               return (
@@ -2363,7 +2363,7 @@ export default function ProductionPipelinePage() {
                             {/* Step 4: Cloth Preparation Step */}
                             {(data.Layout_Ready || data.Ambil_Kain) && (() => {
                               const isCompleted = !!data.Kain_ReadyPress;
-                              const isOngoing = !isCompleted && !!data.Layout_Ready;
+                              const isOngoing = !isCompleted && (!!data.Layout_Ready || !!data.Ambil_Kain);
                               const label = isCompleted ? "Cloth Ready to Press" : "Cloth Preparation";
                               return (
                                 <div className="relative pl-8">
@@ -2414,7 +2414,7 @@ export default function ProductionPipelinePage() {
                             {/* Step 5: Printing Step */}
                             {(data.Kain_ReadyPress || data.Start_Print) && (() => {
                               const isCompleted = !!data.Print_ReadyPress;
-                              const isOngoing = !isCompleted && !!data.Kain_ReadyPress;
+                              const isOngoing = !isCompleted && (!!data.Kain_ReadyPress || !!data.Start_Print);
                               const label = isCompleted ? "Finish Printing" : "Start Printing";
                               return (
                                 <div className="relative pl-8">
@@ -2465,7 +2465,7 @@ export default function ProductionPipelinePage() {
                             {/* Step 6: Press Step */}
                             {(data.Print_ReadyPress || data.Start_Press) && (() => {
                               const isCompleted = !!data.Press_ReadyCut;
-                              const isOngoing = !isCompleted && !!data.Print_ReadyPress;
+                              const isOngoing = !isCompleted && (!!data.Print_ReadyPress || !!data.Start_Press);
                               const label = isCompleted ? "Finish Press" : "Start Press";
                               return (
                                 <div className="relative pl-8">
@@ -2514,9 +2514,9 @@ export default function ProductionPipelinePage() {
                             })()}
 
                             {/* Step 7: Cutting Step */}
-                            {data.Press_ReadyCut && (() => {
+                            {(data.Press_ReadyCut || data.Start_Cut) && (() => {
                               const isCompleted = !!data.Cut_ReadyJahit;
-                              const isOngoing = !isCompleted;
+                              const isOngoing = !isCompleted && (!!data.Press_ReadyCut || !!data.Start_Cut);
                               const label = isCompleted ? "Finish Cutting" : "Start Cutting";
                               return (
                                 <div className="relative pl-8">
@@ -2561,9 +2561,9 @@ export default function ProductionPipelinePage() {
                             })()}
 
                             {/* Step 8: Sew Clothes Step */}
-                            {data.Cut_ReadyJahit && (() => {
+                            {(data.Cut_ReadyJahit || data.Start_Jahit) && (() => {
                               const isCompleted = !!data.Jahit_ReadyQC;
-                              const isOngoing = !isCompleted;
+                              const isOngoing = !isCompleted && (!!data.Cut_ReadyJahit || !!data.Start_Jahit);
                               const label = isCompleted ? "Finish Sew Clothes" : "Start Sew Clothes";
                               return (
                                 <div className="relative pl-8">
@@ -2608,9 +2608,9 @@ export default function ProductionPipelinePage() {
                             })()}
 
                             {/* Step 9: Quality Control Step */}
-                            {data.Jahit_ReadyQC && (() => {
+                            {(data.Jahit_ReadyQC || data.Start_QC) && (() => {
                               const isCompleted = !!data.FinalQC_Packiing;
-                              const isOngoing = !isCompleted;
+                              const isOngoing = !isCompleted && (!!data.Jahit_ReadyQC || !!data.Start_QC);
                               const label = isCompleted ? "Finish Quality Control" : "Start Quality Control";
                               return (
                                 <div className="relative pl-8">
