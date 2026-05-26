@@ -2267,7 +2267,7 @@ export default function ProductionPipelinePage() {
                           Status Alur Kerja (Working Status)
                         </h3>
 
-                        {!data.Desain_Ready ? (
+                        {(!data.pos_date && !data.QC_ReadyGudang && !data.Final_Cust) ? (
                           <div className="rounded-lg border border-slate-800/50 bg-slate-950/40 p-5 text-center">
                             <span className="block text-xs font-semibold text-slate-400">Data tidak ditemukan</span>
                             <span className="block text-[11px] text-slate-500 mt-1">Data status alur kerja tidak ditemukan atau belum dimulai.</span>
