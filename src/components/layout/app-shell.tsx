@@ -7,6 +7,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { navigation } from "@/lib/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { clearSession, getSession } from "@/lib/session";
 import type { SessionUser } from "@/lib/types";
 
@@ -26,10 +28,65 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  function logout() {
+  // Fetch live permissions for the logged-in user to dynamically control sidebar menu visibility
+  const { data: userPerms } = useQuery({
+    queryKey: ["my-permissions", user?.id],
+    queryFn: () => api.getPermissions(user?.id),
+    enabled: !!user?.id,
+  });
+
+  // Fetch live profile to obtain LastOnline timestamp fresh from the database
+  const { data: profileSync } = useQuery({
+    queryKey: ["app-shell-profile-sync", user?.username],
+    queryFn: () => api.getAccounts({ search: user?.username }),
+    enabled: !!user?.username,
+  });
+
+  const myProfile = profileSync?.items?.find(
+    (u) => u.pengguna.toLowerCase() === user?.username?.toLowerCase()
+  );
+  const lastOnlineVal = myProfile?.LastOnline ? myProfile.LastOnline : null;
+
+  // Sync LastOnline automatically on browser or tab close
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const handleUnload = () => {
+      const url = `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/auth/logout`;
+      const blob = new Blob([JSON.stringify({ id: user.id })], { type: "application/json" });
+      navigator.sendBeacon(url, blob);
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+    };
+  }, [user]);
+
+  async function logout() {
+    if (user?.id) {
+      try {
+        await api.logout(user.id);
+      } catch (err) {
+        console.error("Gagal update last online di server:", err);
+      }
+    }
     clearSession();
-    router.replace("/login");
+    window.location.href = "/login";
   }
+
+  // Filter helper based on V (View) permission or default fallbacks
+  const hasMenuAccess = (label: string) => {
+    if (!user) return false;
+    // Admins are superusers and always have absolute menu access
+    if (user.role.toLowerCase() === "admin") return true;
+
+    if (!userPerms?.permissions) {
+      return true;
+    }
+    const modulePerms = userPerms.permissions[label];
+    return !!modulePerms?.V;
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -40,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <div className="flex h-16 items-center border-b border-slate-800 px-5">
-          <Link href="/dashboard" className="flex items-center gap-3">
+          <a href="/dashboard" className="flex items-center gap-3">
             <span className="flex size-11 items-center justify-center rounded-lg bg-white p-1.5">
               <Image
                 src="/allstar-logo.jpg"
@@ -59,32 +116,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Textile & Sportswear
               </span>
             </span>
-          </Link>
+          </a>
         </div>
 
         <nav className="space-y-1 px-4 py-5">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            const active =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          {navigation
+            .filter((item) => hasMenuAccess(item.label))
+            .map((item) => {
+              const Icon = item.icon;
+              const active =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={clsx(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
-                  active
-                    ? "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/20"
-                    : "text-slate-300 hover:bg-slate-900 hover:text-white",
-                )}
-              >
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            );
-          })}
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className={clsx(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
+                    active
+                      ? "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/20"
+                      : "text-slate-300 hover:bg-slate-900 hover:text-white",
+                  )}
+                >
+                  <Icon size={18} />
+                  {item.label}
+                </a>
+              );
+            })}
         </nav>
       </aside>
 
@@ -117,13 +176,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Menu size={20} />
               )}
             </button>
-            <div className="hidden h-10 items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 text-sm text-slate-500 md:flex">
-              <Search size={16} />
-              <span>FO, customer, deadline</span>
-            </div>
           </div>
 
           <div className="flex items-center gap-3">
+            {lastOnlineVal && (
+              <div className="text-right border-r border-slate-800 pr-3 select-none">
+                <p className="text-[8px] sm:text-[9px] uppercase font-semibold text-slate-500 tracking-wider">Last Online (WITA)</p>
+                <p className="text-[10px] sm:text-xs text-slate-400 font-mono font-medium">{lastOnlineVal}</p>
+              </div>
+            )}
             <div className="text-right">
               <p className="text-sm font-medium text-white">
                 {user?.name || user?.username || "Operator"}

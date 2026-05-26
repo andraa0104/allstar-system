@@ -9,9 +9,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
-    await pool.execute(`UPDATE users SET is_active = 0 WHERE id = :id`, { id });
+    await pool.execute(`DELETE FROM tb_pengguna WHERE kd_user = :id`, { id });
 
-    return jsonResponse({ message: "Akun berhasil dinonaktifkan." }, {}, request);
+    return jsonResponse({ message: "User berhasil dihapus." }, {}, request);
   } catch (error) {
     return errorResponse(error, request);
   }

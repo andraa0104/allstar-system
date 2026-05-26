@@ -186,3 +186,27 @@ export type FoListResponse = {
   limit: number | "all";
   totalPages: number;
 };
+
+export type AdminAccount = {
+  kd_user: string;
+  nm_user: string;
+  no_hp: string;
+  pengguna: string;
+  tingkat: string;
+  LastOnline?: string;
+};
+
+export type AdminAccountsResponse = {
+  count: number;
+  items: AdminAccount[];
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export type UserPermissionResponse = {
+  kd_user: string;
+  updated_at?: string;
+  permissions: Record<string, Record<string, boolean>>;
+};
+

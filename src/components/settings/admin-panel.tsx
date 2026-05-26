@@ -22,14 +22,14 @@ export function AdminPanel() {
 
   const permissions = useQuery({
     queryKey: ["permissions"],
-    queryFn: api.getPermissions,
+    queryFn: () => api.getPermissions(),
     enabled: canManage,
   });
 
   useEffect(() => {
     queueMicrotask(() => {
       if (permissions.data) {
-        setDraft(permissions.data);
+        setDraft(permissions.data.permissions);
         return;
       }
 
@@ -49,7 +49,7 @@ export function AdminPanel() {
   });
 
   const savePermissions = useMutation({
-    mutationFn: api.updatePermissions,
+    mutationFn: (payload: PermissionMatrix) => api.updatePermissions({ kd_user: "all", permissions: payload }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["permissions"] }),
   });
 

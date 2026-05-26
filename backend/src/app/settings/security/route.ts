@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs";
 import type { RowDataPacket } from "mysql2";
 import { z } from "zod";
 import { pool } from "@/lib/db";
@@ -9,19 +8,19 @@ export const runtime = "nodejs";
 const passwordSchema = z.object({
   id: z.string().min(1),
   currentPassword: z.string().min(1),
-  newPassword: z.string().min(6),
+  newPassword: z.string().min(1),
 });
 
 type UserPasswordRow = RowDataPacket & {
-  id: number;
-  password_hash: string;
+  kd_user: string;
+  pass: string;
 };
 
 export async function PUT(request: Request) {
   try {
     const payload = passwordSchema.parse(await request.json());
     const [rows] = await pool.execute<UserPasswordRow[]>(
-      `SELECT id, password_hash FROM users WHERE id = :id AND is_active = 1`,
+      `SELECT kd_user, pass FROM tb_pengguna WHERE kd_user = :id`,
       { id: payload.id },
     );
 
@@ -30,21 +29,20 @@ export async function PUT(request: Request) {
       throw new HttpError(404, "User tidak ditemukan.");
     }
 
-    const passwordValid = await bcrypt.compare(
-      payload.currentPassword,
-      user.password_hash,
-    );
-    if (!passwordValid) {
+    if (payload.currentPassword !== user.pass) {
       throw new HttpError(401, "Password saat ini tidak sesuai.");
     }
 
-    const passwordHash = await bcrypt.hash(payload.newPassword, 12);
+    if (payload.newPassword === user.pass) {
+      throw new HttpError(400, "Password baru tidak boleh sama dengan password lama.");
+    }
+
     await pool.execute(
-      `UPDATE users SET password_hash = :passwordHash WHERE id = :id`,
-      { passwordHash, id: payload.id },
+      `UPDATE tb_pengguna SET pass = :newPassword WHERE kd_user = :id`,
+      { newPassword: payload.newPassword, id: payload.id },
     );
 
-    return jsonResponse({ message: "Password berhasil diperbarui." }, {}, request);
+    return jsonResponse({ message: "Password berhasil diubah." }, {}, request);
   } catch (error) {
     return errorResponse(error, request);
   }

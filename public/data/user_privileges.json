@@ -1,0 +1,26 @@
+[
+  {
+    "kd_user": "USR0004",
+    "updated_at": "2026-05-26T03:44:38.910Z",
+    "permissions": {
+      "Dashboard": {
+        "V": true,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Production Pipeline": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "System Settings": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      }
+    }
+  }
+]

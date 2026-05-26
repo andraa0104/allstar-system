@@ -4,25 +4,23 @@ import { emptyResponse, errorResponse, jsonResponse } from "@/lib/response";
 
 export const runtime = "nodejs";
 
-const profileSchema = z.object({
+const logoutSchema = z.object({
   id: z.string().min(1),
-  name: z.string().min(1),
-  phone: z.string().optional().default(""),
-  username: z.string().min(1),
 });
 
-export async function PUT(request: Request) {
+export async function POST(request: Request) {
   try {
-    const payload = profileSchema.parse(await request.json());
+    const payload = logoutSchema.parse(await request.json());
 
+    // Update LastOnline utilizing SQL to precisely target WITA (UTC+8) time format yyyy-mm-dd hh:mm:ss
     await pool.execute(
       `UPDATE tb_pengguna
-       SET nm_user = :name, no_hp = :phone, pengguna = :username
+       SET LastOnline = DATE_FORMAT(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR), '%Y-%m-%d %H:%i:%s')
        WHERE kd_user = :id OR pengguna = :id`,
-      payload,
+      { id: payload.id },
     );
 
-    return jsonResponse({ message: "Profil berhasil diperbarui." }, {}, request);
+    return jsonResponse({ message: "Logout status updated." }, {}, request);
   } catch (error) {
     return errorResponse(error, request);
   }

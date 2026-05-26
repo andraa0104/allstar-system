@@ -16,11 +16,13 @@ import {
   Activity,
   Calendar,
   AlertTriangle,
+  ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { api } from "@/lib/api";
+import { getSession } from "@/lib/session";
 import type { FoDetailData, FoOutstandingRow, FoListRow } from "@/lib/types";
 
 const pipelineCards = [
@@ -416,6 +418,21 @@ function getDeadlineStyle(deadlineDateStr: string | null, status: string | null)
 
 export default function ProductionPipelinePage() {
   const queryClient = useQueryClient();
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setSession(getSession());
+    });
+  }, []);
+
+  // Fetch live permissions for the logged-in user
+  const { data: userPerms, isLoading: isLoadingPerms } = useQuery({
+    queryKey: ["my-pipeline-privilege", session?.id],
+    queryFn: () => api.getPermissions(session?.id),
+    enabled: !!session?.id,
+  });
+
   const [isOutstandingOpen, setIsOutstandingOpen] = useState(false);
   const [isDeadlineOpen, setIsDeadlineOpen] = useState(false);
   const [isOverdueOpen, setIsOverdueOpen] = useState(false);
@@ -425,6 +442,18 @@ export default function ProductionPipelinePage() {
   const [detailSearch, setDetailSearch] = useState("");
   const [detailLimit, setDetailLimit] = useState<number | "all">(5);
   const [detailPage, setDetailPage] = useState(1);
+
+  // Check live access for "Production Pipeline" V permission
+  const hasAccess = (() => {
+    if (!session) return false;
+    // Admins are superusers and always bypass view limitations
+    if (session.role.toLowerCase() === "admin") return true;
+
+    if (!userPerms?.permissions) {
+      return true; // Default fallback if no custom privilege JSON exists
+    }
+    return !!userPerms.permissions["Production Pipeline"]?.V;
+  })();
 
   const [jobSearch, setJobSearch] = useState("");
   const [jobLimit, setJobLimit] = useState<number | "all">(5);
@@ -614,6 +643,26 @@ export default function ProductionPipelinePage() {
         status_category: foListStatusCategory,
       }),
   });
+
+  if (isLoadingPerms) {
+    return (
+      <div className="flex items-center justify-center p-24">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+      </div>
+    );
+  }
+
+  if (userPerms?.permissions && !hasAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center p-24 text-center border border-dashed border-slate-800 rounded-xl bg-slate-900/10 backdrop-blur-md max-w-2xl mx-auto my-12 shadow-xl shadow-slate-950/20">
+        <ShieldAlert size={48} className="text-rose-500 mb-4 animate-pulse" />
+        <h2 className="text-base font-bold text-white mb-2">Access Denied (403)</h2>
+        <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+          Anda tidak memiliki hak akses (View Privilege) untuk menu **Production Pipeline**. Hubungi administrator utama Anda untuk meminta izin otorisasi.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>

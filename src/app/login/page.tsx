@@ -16,7 +16,7 @@ export default function LoginPage() {
     mutationFn: api.login,
     onSuccess: (user) => {
       setSession(user);
-      router.replace("/dashboard");
+      window.location.href = "/dashboard";
     },
   });
 

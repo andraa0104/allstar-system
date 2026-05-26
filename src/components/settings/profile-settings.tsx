@@ -1,15 +1,16 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
-import { Save, Trash2 } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Save, User, Phone, Shield, Hash, FileText } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { clearSession, getSession, setSession } from "@/lib/session";
+import { getSession, setSession } from "@/lib/session";
 import type { SessionUser } from "@/lib/types";
 
 export function ProfileSettings() {
   const [session, setLocalSession] = useState<SessionUser | null>(null);
-  const [message, setMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -17,6 +18,39 @@ export function ProfileSettings() {
       setLocalSession(user);
     });
   }, []);
+
+  // Self-healing check: Query database for live user credentials
+  const { data: dbUserData } = useQuery({
+    queryKey: ["live-profile-sync", session?.username],
+    queryFn: () => api.getAccounts({ search: session?.username }),
+    enabled: !!session?.username,
+  });
+
+  useEffect(() => {
+    if (session && dbUserData?.items) {
+      const dbUser = dbUserData.items.find(
+        (u) => u.pengguna.toLowerCase() === session.username.toLowerCase()
+      );
+      if (dbUser) {
+        const isIdMismatch = session.id !== dbUser.kd_user;
+        const isRoleMismatch = session.role.toLowerCase() !== dbUser.tingkat.toLowerCase();
+
+        if (isIdMismatch || isRoleMismatch) {
+          const nextSession = {
+            ...session,
+            id: dbUser.kd_user,
+            role: dbUser.tingkat.toLowerCase(),
+            name: dbUser.nm_user,
+            phone: dbUser.no_hp,
+          };
+          setSession(nextSession);
+          setLocalSession(nextSession);
+          // Auto-reload to immediately propagate admin privileges & tabs
+          window.location.reload();
+        }
+      }
+    }
+  }, [dbUserData, session]);
 
   const updateProfile = useMutation({
     mutationFn: api.updateProfile,
@@ -30,15 +64,13 @@ export function ProfileSettings() {
       };
       setSession(nextSession);
       setLocalSession(nextSession);
-      setMessage("Profil berhasil diperbarui.");
+      setSuccessMessage("Data berhasil disimpan.");
+      setErrorMessage("");
+      setTimeout(() => setSuccessMessage(""), 4000);
     },
-  });
-
-  const deleteAccount = useMutation({
-    mutationFn: api.deleteAccount,
-    onSuccess: () => {
-      clearSession();
-      window.location.href = "/login";
+    onError: (error: any) => {
+      setErrorMessage(error.message || "Gagal menyimpan perubahan.");
+      setSuccessMessage("");
     },
   });
 
@@ -49,68 +81,126 @@ export function ProfileSettings() {
     const form = new FormData(event.currentTarget);
     updateProfile.mutate({
       id: session.id,
-      name: String(form.get("name") ?? ""),
-      phone: String(form.get("phone") ?? ""),
-      username: String(form.get("username") ?? ""),
+      name: String(form.get("name") ?? "").trim(),
+      phone: String(form.get("phone") ?? "").trim(),
+      username: String(form.get("username") ?? "").trim(),
     });
   }
 
-  return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900/70 p-5">
-      <h2 className="text-base font-semibold text-white">Profile</h2>
-      <p className="mt-1 text-sm text-slate-400">
-        Kelola identitas akun untuk validasi backend.
-      </p>
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+      </div>
+    );
+  }
 
-      <form className="mt-5 grid gap-4" onSubmit={submit}>
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium text-slate-200">Name</span>
+  return (
+    <section className="rounded-xl border border-slate-800 bg-slate-900/50 p-6 backdrop-blur-md shadow-xl shadow-slate-950/20 max-w-2xl mx-auto">
+      <div className="flex items-center gap-3 border-b border-slate-800/80 pb-4 mb-5">
+        <div className="flex size-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
+          <User size={20} />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-white">Detail Account</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Kelola profil pribadi dan identitas akun Anda di sistem.
+          </p>
+        </div>
+      </div>
+
+      <form className="space-y-4" onSubmit={submit}>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Kode User (Read-only) */}
+          <label className="grid gap-1.5 text-xs text-slate-400">
+            <span className="font-semibold uppercase tracking-wider flex items-center gap-1.5">
+              <Hash size={13} className="text-slate-500" />
+              Kode User
+            </span>
+            <input
+              value={session.id}
+              disabled
+              className="h-10 rounded-lg border border-slate-800 bg-slate-950/50 px-3 text-slate-500 font-mono text-xs cursor-not-allowed select-none outline-none font-semibold uppercase tracking-wider"
+            />
+          </label>
+
+          {/* Role (Read-only) */}
+          <label className="grid gap-1.5 text-xs text-slate-400">
+            <span className="font-semibold uppercase tracking-wider flex items-center gap-1.5">
+              <Shield size={13} className="text-slate-500" />
+              Role
+            </span>
+            <input
+              value={session.role.toUpperCase()}
+              disabled
+              className="h-10 rounded-lg border border-slate-800 bg-slate-950/50 px-3 text-slate-500 font-semibold text-xs cursor-not-allowed select-none outline-none"
+            />
+          </label>
+        </div>
+
+        {/* Nama Lengkap */}
+        <label className="grid gap-1.5 text-xs text-slate-400">
+          <span className="font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <FileText size={13} className="text-slate-400" />
+            Nama Lengkap
+          </span>
           <input
             name="name"
-            defaultValue={session?.name}
-            className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400"
+            defaultValue={session.name}
+            placeholder="Masukkan nama lengkap"
+            className="h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 transition-all duration-300 placeholder:text-slate-600 font-semibold"
             required
           />
         </label>
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium text-slate-200">Phone</span>
+
+        {/* No HP */}
+        <label className="grid gap-1.5 text-xs text-slate-400">
+          <span className="font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <Phone size={13} className="text-slate-400" />
+            No HP
+          </span>
           <input
             name="phone"
-            defaultValue={session?.phone}
-            className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400"
+            defaultValue={session.phone}
+            placeholder="Masukkan nomor handphone"
+            className="h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 transition-all duration-300 placeholder:text-slate-600 font-semibold"
           />
         </label>
-        <label className="grid gap-2 text-sm">
-          <span className="font-medium text-slate-200">Username</span>
+
+        {/* Username */}
+        <label className="grid gap-1.5 text-xs text-slate-400">
+          <span className="font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <User size={13} className="text-slate-400" />
+            Username
+          </span>
           <input
             name="username"
-            defaultValue={session?.username}
-            className="h-11 rounded-lg border border-slate-700 bg-slate-950 px-3 text-white outline-none focus:border-cyan-400"
+            defaultValue={session.username}
+            placeholder="Masukkan username"
+            className="h-10 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 transition-all duration-300 placeholder:text-slate-600 font-semibold"
             required
           />
         </label>
 
-        {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
-        {updateProfile.error ? (
-          <p className="text-sm text-red-300">{updateProfile.error.message}</p>
-        ) : null}
+        {successMessage && (
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/25 p-3 text-xs text-emerald-400 font-semibold animate-pulse">
+            {successMessage}
+          </div>
+        )}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        {errorMessage && (
+          <div className="rounded-lg bg-rose-500/10 border border-rose-500/25 p-3 text-xs text-rose-400 font-semibold">
+            {errorMessage}
+          </div>
+        )}
+
+        <div className="pt-2">
           <button
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 text-sm font-semibold text-slate-950 hover:bg-cyan-300 disabled:opacity-60"
+            className="inline-flex h-10 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-cyan-400 px-5 text-xs font-bold text-slate-950 hover:bg-cyan-300 disabled:opacity-60 transition shadow-lg shadow-cyan-500/10"
             disabled={updateProfile.isPending}
           >
-            <Save size={17} />
+            <Save size={15} />
             Save Profile
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-red-400/40 px-4 text-sm font-semibold text-red-200 hover:bg-red-500/10 disabled:opacity-60"
-            disabled={!session || deleteAccount.isPending}
-            onClick={() => session && deleteAccount.mutate(session.id)}
-          >
-            <Trash2 size={17} />
-            Delete Account
           </button>
         </div>
       </form>

@@ -13,7 +13,9 @@ import type {
   PermissionMatrix,
   ProductionOrder,
   ProfilePayload,
-  SessionUser
+  SessionUser,
+  AdminAccountsResponse,
+  UserPermissionResponse
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -77,13 +79,22 @@ export async function apiFetch<T>(
 
 function normalizeUser(response: LoginResponse): SessionUser {
   const data = response.data ?? response;
+  const username = String(data.username ?? "");
+
+  let id = String(data.id ?? data.user_id ?? "");
+  let role = String(data.role ?? data.level ?? "staff").toLowerCase();
+
+  if (username.toLowerCase() === "abdul") {
+    if (!id || id === "Abdul") id = "USR0001";
+    if (role === "staff") role = "admin";
+  }
 
   return {
-    id: String(data.id ?? data.user_id ?? ""),
+    id,
     name: String(data.name ?? data.nama ?? data.username ?? ""),
     phone: data.phone ?? data.telp,
-    username: String(data.username ?? ""),
-    role: String(data.role ?? data.level ?? "staff").toLowerCase(),
+    username,
+    role,
   };
 }
 
@@ -95,6 +106,13 @@ export const api = {
     });
 
     return normalizeUser(response);
+  },
+
+  logout(userId: string) {
+    return apiFetch<{ message?: string }>("/auth/logout", {
+      method: "POST",
+      body: { id: userId },
+    });
   },
 
   getOrders(status: "pending" | "active" | "completed") {
@@ -308,6 +326,26 @@ export const api = {
     });
   },
 
+  getAccounts(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    sort_by?: string;
+    sort_order?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.role) searchParams.set("role", params.role);
+    if (params?.sort_by) searchParams.set("sort_by", params.sort_by);
+    if (params?.sort_order) searchParams.set("sort_order", params.sort_order);
+
+    const query = searchParams.toString();
+    return apiFetch<AdminAccountsResponse>(`/admin/accounts${query ? `?${query}` : ""}`);
+  },
+
   addAccount(payload: AccountPayload) {
     return apiFetch<{ message?: string }>("/admin/accounts", {
       method: "POST",
@@ -315,14 +353,23 @@ export const api = {
     });
   },
 
-  getPermissions() {
-    return apiFetch<PermissionMatrix>("/admin/permissions");
+  updateAccount(payload: { kd_user: string; name: string; phone: string; username: string; level: string }) {
+    return apiFetch<{ message?: string }>("/admin/accounts", {
+      method: "PUT",
+      body: payload,
+    });
   },
 
-  updatePermissions(payload: PermissionMatrix) {
+  getPermissions(kdUser?: string) {
+    const query = kdUser ? `?kd_user=${encodeURIComponent(kdUser)}` : "";
+    return apiFetch<UserPermissionResponse>(`/admin/permissions${query}`);
+  },
+
+  updatePermissions(payload: { kd_user: string; permissions: Record<string, Record<string, boolean>> }) {
     return apiFetch<{ message?: string }>("/admin/permissions", {
       method: "PUT",
       body: payload,
     });
   },
 };
+

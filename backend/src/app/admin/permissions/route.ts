@@ -1,38 +1,74 @@
-import type { RowDataPacket } from "mysql2";
+import fs from "fs";
+import path from "path";
 import { z } from "zod";
-import { pool } from "@/lib/db";
 import { emptyResponse, errorResponse, jsonResponse } from "@/lib/response";
 
 export const runtime = "nodejs";
 
-const permissionsSchema = z.record(z.string(), z.record(z.string(), z.boolean()));
+const permissionsSchema = z.object({
+  kd_user: z.string().min(1),
+  permissions: z.record(z.string(), z.record(z.string(), z.boolean())),
+});
 
-type PermissionRow = RowDataPacket & {
-  module: string;
-  role: string;
-  allowed: number;
-};
+interface PrivilegeEntry {
+  kd_user: string;
+  updated_at: string;
+  permissions: Record<string, Record<string, boolean>>;
+}
+
+function getFilePath() {
+  const filePath = path.join(process.cwd(), "../public/data/user_privileges.json");
+  const dirPath = path.dirname(filePath);
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+  return filePath;
+}
+
+function loadAllPrivileges(): PrivilegeEntry[] {
+  const filePath = getFilePath();
+  if (!fs.existsSync(filePath)) {
+    return [];
+  }
+  try {
+    const data = fs.readFileSync(filePath, "utf-8");
+    return JSON.parse(data) as PrivilegeEntry[];
+  } catch (error) {
+    console.error("Gagal membaca user_privileges.json:", error);
+    return [];
+  }
+}
+
+function saveAllPrivileges(entries: PrivilegeEntry[]) {
+  const filePath = getFilePath();
+  fs.writeFileSync(filePath, JSON.stringify(entries, null, 2), "utf-8");
+}
 
 export async function GET(request: Request) {
   try {
-    const [rows] = await pool.execute<PermissionRow[]>(
-      `SELECT module, role, allowed
-       FROM role_permissions
-       ORDER BY module ASC, role ASC`,
-    );
+    const url = new URL(request.url);
+    const kd_user = url.searchParams.get("kd_user");
 
-    const matrix = rows.reduce<Record<string, Record<string, boolean>>>(
-      (result, row) => {
-        result[row.module] = {
-          ...(result[row.module] ?? {}),
-          [row.role]: row.allowed === 1,
-        };
-        return result;
-      },
-      {},
-    );
+    if (!kd_user) {
+      // If no user is specified, return all entries
+      const allEntries = loadAllPrivileges();
+      return jsonResponse(allEntries, {}, request);
+    }
 
-    return jsonResponse(matrix, {}, request);
+    const allEntries = loadAllPrivileges();
+    const entry = allEntries.find((e) => e.kd_user === kd_user);
+
+    if (!entry) {
+      // Return empty default matrix if not found
+      const defaultMatrix: Record<string, Record<string, boolean>> = {
+        "Dashboard": { V: false, C: false, U: false, D: false },
+        "Production Pipeline": { V: false, C: false, U: false, D: false },
+        "System Settings": { V: false, C: false, U: false, D: false },
+      };
+      return jsonResponse({ kd_user, permissions: defaultMatrix }, {}, request);
+    }
+
+    return jsonResponse(entry, {}, request);
   } catch (error) {
     return errorResponse(error, request);
   }
@@ -41,24 +77,25 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   try {
     const payload = permissionsSchema.parse(await request.json());
+    const allEntries = loadAllPrivileges();
 
-    for (const [moduleName, roles] of Object.entries(payload)) {
-      for (const [role, allowed] of Object.entries(roles)) {
-        await pool.execute(
-          `INSERT INTO role_permissions (module, role, allowed)
-           VALUES (:module, :role, :allowed)
-           ON DUPLICATE KEY UPDATE allowed = VALUES(allowed)`,
-          {
-            module: moduleName,
-            role,
-            allowed: allowed ? 1 : 0,
-          },
-        );
-      }
+    const existingIndex = allEntries.findIndex((e) => e.kd_user === payload.kd_user);
+    const updatedEntry: PrivilegeEntry = {
+      kd_user: payload.kd_user,
+      updated_at: new Date().toISOString(),
+      permissions: payload.permissions,
+    };
+
+    if (existingIndex > -1) {
+      allEntries[existingIndex] = updatedEntry;
+    } else {
+      allEntries.push(updatedEntry);
     }
 
+    saveAllPrivileges(allEntries);
+
     return jsonResponse(
-      { message: "Permission matrix berhasil diperbarui." },
+      { message: "Privilege access berhasil diubah.", data: updatedEntry },
       {},
       request,
     );
