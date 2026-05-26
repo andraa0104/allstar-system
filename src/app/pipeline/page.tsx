@@ -2361,27 +2361,31 @@ export default function ProductionPipelinePage() {
                             })()}
 
                             {/* Step 4: Printing Step */}
-                            {data.Start_Print && (() => {
+                            {(data.Layout_Ready || data.Start_Print) && (() => {
                               const isCompleted = !!data.Print_ReadyPress;
-                              const isOngoing = !isCompleted;
-                              const label = isCompleted ? "Finish Printing" : "Printing";
+                              const isOngoing = !isCompleted && !!data.Layout_Ready;
+                              const label = isCompleted ? "Finish Printing" : "Start Printing";
                               return (
                                 <div className="relative pl-8">
                                   <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
                                     isCompleted 
                                       ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                      : isOngoing 
+                                        ? "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                        : "bg-slate-950 border-slate-800 text-slate-600"
                                   }`}>
                                     {isCompleted ? (
                                       <Check size={11} strokeWidth={3} />
-                                    ) : (
+                                    ) : isOngoing ? (
                                       <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                    ) : (
+                                      <div className="size-1.5 bg-slate-800 rounded-full" />
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center justify-between gap-2">
                                       <h4 className={`text-xs font-bold transition-colors ${
-                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                        isCompleted ? "text-slate-200" : isOngoing ? "text-blue-300 font-semibold" : "text-slate-500"
                                       }`}>
                                         {label}
                                       </h4>
@@ -2389,16 +2393,18 @@ export default function ProductionPipelinePage() {
                                         <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
                                           Selesai
                                         </span>
-                                      ) : (
+                                      ) : isOngoing ? (
                                         <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
                                           On Going
                                         </span>
-                                      )}
+                                      ) : null}
                                     </div>
                                     <p className="text-[10px] text-slate-500 mt-0.5">
                                       {isCompleted 
                                         ? `Selesai Print: ${formatIndonesianDateTime(data.Print_ReadyPress)}` 
-                                        : `Mulai Print: ${formatIndonesianDateTime(data.Start_Print)}`}
+                                        : (data.Start_Print 
+                                            ? `Mulai Print: ${formatIndonesianDateTime(data.Start_Print)}` 
+                                            : "Proses printing")}
                                     </p>
                                   </div>
                                 </div>
