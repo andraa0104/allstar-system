@@ -2216,515 +2216,522 @@ export default function ProductionPipelinePage() {
                           Status Alur Kerja (Working Status)
                         </h3>
 
-                        <div className="relative pl-3 space-y-6">
-                          {/* Connector Line */}
-                          <div className="absolute left-[22px] top-2.5 bottom-2.5 w-[2px] bg-slate-800"></div>
+                        {!data.pos_date ? (
+                          <div className="rounded-lg border border-slate-800/50 bg-slate-950/40 p-5 text-center">
+                            <span className="block text-xs font-semibold text-slate-400">Data tidak ditemukan</span>
+                            <span className="block text-[11px] text-slate-500 mt-1">Data status alur kerja tidak ditemukan atau belum dimulai.</span>
+                          </div>
+                        ) : (
+                          <div className="relative pl-3 space-y-6">
+                            {/* Connector Line */}
+                            <div className="absolute left-[22px] top-2.5 bottom-2.5 w-[2px] bg-slate-800"></div>
 
-                          {/* Step 1: Order Success */}
-                          {(() => {
-                            const isCompleted = !!data.pos_date;
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-slate-950 border-slate-800 text-slate-600"
-                                }`}>
-                                  {isCompleted ? <Check size={11} strokeWidth={3} /> : <div className="size-1.5 bg-slate-800 rounded-full" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${isCompleted ? "text-slate-200" : "text-slate-500"}`}>
-                                      Order Success
-                                    </h4>
-                                    {isCompleted && (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {data.pos_date ? `Tanggal POS: ${formatIndonesianDate(data.pos_date)}` : "Belum mulai"}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })()}
-
-                          {/* Step 2: Design Step */}
-                          {(() => {
-                            const isCompleted = !!data.Desain_Ready;
-                            const isOngoing = !isCompleted && !!data.pos_date;
-                            const label = isCompleted ? "Design Ready" : "Start Design";
-                            
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : isOngoing 
-                                      ? "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                            {/* Step 1: Order Success */}
+                            {(() => {
+                              const isCompleted = !!data.pos_date;
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
                                       : "bg-slate-950 border-slate-800 text-slate-600"
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : isOngoing ? (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  ) : (
-                                    <div className="size-1.5 bg-slate-800 rounded-full" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : isOngoing ? "text-blue-300 font-semibold" : "text-slate-500"
-                                    }`}>
-                                      {label}
-                                    </h4>
-                                    {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
-                                    ) : isOngoing ? (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
-                                    ) : null}
+                                  }`}>
+                                    {isCompleted ? <Check size={11} strokeWidth={3} /> : <div className="size-1.5 bg-slate-800 rounded-full" />}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {data.Desain_Ready ? `Tanggal Ready: ${formatIndonesianDate(data.Desain_Ready)}` : isOngoing ? "Proses pembuatan desain" : "Menunggu Order Success"}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${isCompleted ? "text-slate-200" : "text-slate-500"}`}>
+                                        Order Success
+                                      </h4>
+                                      {isCompleted && (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {data.pos_date ? `Tanggal POS: ${formatIndonesianDateTime(data.pos_date)}` : "Belum mulai"}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
 
-                          {/* Step 3: Layout Step */}
-                          {(() => {
-                            const isCompleted = !!data.Layout_Ready;
-                            const isOngoing = !isCompleted && !!data.Desain_Ready;
-                            const label = isCompleted ? "Layout Ready" : "Start Layout";
-                            
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : isOngoing 
-                                      ? "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                      : "bg-slate-950 border-slate-800 text-slate-600"
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : isOngoing ? (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  ) : (
-                                    <div className="size-1.5 bg-slate-800 rounded-full" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : isOngoing ? "text-blue-300 font-semibold" : "text-slate-500"
-                                    }`}>
-                                      {label}
-                                    </h4>
-                                    {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
-                                    ) : isOngoing ? (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {data.Layout_Ready 
-                                      ? `Tanggal Ready: ${formatIndonesianDate(data.Layout_Ready)}` 
+                            {/* Step 2: Design Step */}
+                            {(() => {
+                              const isCompleted = !!data.Desain_Ready;
+                              const isOngoing = !isCompleted && !!data.pos_date;
+                              const label = isCompleted ? "Design Ready" : "Start Design";
+                              
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
                                       : isOngoing 
-                                        ? (data.Start_Layout 
-                                          ? `Mulai Layout: ${formatIndonesianDate(data.Start_Layout)}` 
-                                          : "Proses layouting") 
-                                        : "Menunggu Design Ready"
-                                    }
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })()}
-
-                          {/* Step 4: Printing Step */}
-                          {data.Start_Print && (() => {
-                            const isCompleted = !!data.Print_ReadyPress;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Finish Printing" : "Printing";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                                        ? "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                        : "bg-slate-950 border-slate-800 text-slate-600"
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
+                                    ) : isOngoing ? (
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
+                                      <div className="size-1.5 bg-slate-800 rounded-full" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Selesai Print: ${formatIndonesianDate(data.Print_ReadyPress)}` 
-                                      : `Mulai Print: ${formatIndonesianDate(data.Start_Print)}`}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : isOngoing ? "text-blue-300 font-semibold" : "text-slate-500"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : isOngoing ? (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {data.Desain_Ready ? `Tanggal Ready: ${formatIndonesianDateTime(data.Desain_Ready)}` : isOngoing ? "Proses pembuatan desain" : "Menunggu Order Success"}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
 
-                          {/* Step 5: Cloth Preparation Step */}
-                          {data.Print_ReadyPress && (() => {
-                            const isCompleted = !!data.Kain_ReadyPress;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Cloth Ready to Press" : "Cloth Preparation";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                            {/* Step 3: Layout Step */}
+                            {(() => {
+                              const isCompleted = !!data.Layout_Ready;
+                              const isOngoing = !isCompleted && !!data.Desain_Ready;
+                              const label = isCompleted ? "Layout Ready" : "Start Layout";
+                              
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : isOngoing 
+                                        ? "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                        : "bg-slate-950 border-slate-800 text-slate-600"
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
+                                    ) : isOngoing ? (
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
-
+                                      <div className="size-1.5 bg-slate-800 rounded-full" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Kain Siap Press: ${formatIndonesianDate(data.Kain_ReadyPress)}` 
-                                      : (data.Ambil_Kain 
-                                          ? `Ambil Kain: ${formatIndonesianDate(data.Ambil_Kain)}` 
-                                          : "Proses persiapan kain")}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : isOngoing ? "text-blue-300 font-semibold" : "text-slate-500"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : isOngoing ? (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {data.Layout_Ready 
+                                        ? `Tanggal Ready: ${formatIndonesianDateTime(data.Layout_Ready)}` 
+                                        : isOngoing 
+                                          ? (data.Start_Layout 
+                                            ? `Mulai Layout: ${formatIndonesianDateTime(data.Start_Layout)}` 
+                                            : "Proses layouting") 
+                                          : "Menunggu Design Ready"
+                                      }
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
 
-                          {/* Step 6: Press Step */}
-                          {data.Kain_ReadyPress && (() => {
-                            const isCompleted = !!data.Press_ReadyCut;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Finish Press" : "Start Press";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                            {/* Step 4: Printing Step */}
+                            {data.Start_Print && (() => {
+                              const isCompleted = !!data.Print_ReadyPress;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Finish Printing" : "Printing";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Selesai Press: ${formatIndonesianDate(data.Press_ReadyCut)}` 
-                                      : (data.Start_Press 
-                                          ? `Mulai Press: ${formatIndonesianDate(data.Start_Press)}` 
-                                          : "Proses pemotongan & pengepresan")}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Selesai Print: ${formatIndonesianDateTime(data.Print_ReadyPress)}` 
+                                        : `Mulai Print: ${formatIndonesianDateTime(data.Start_Print)}`}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
 
-                          {/* Step 7: Cutting Step */}
-                          {data.Press_ReadyCut && (() => {
-                            const isCompleted = !!data.Cut_ReadyJahit;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Finish Cutting" : "Start Cutting";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                            {/* Step 5: Cloth Preparation Step */}
+                            {data.Print_ReadyPress && (() => {
+                              const isCompleted = !!data.Kain_ReadyPress;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Cloth Ready to Press" : "Cloth Preparation";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Selesai Cutting: ${formatIndonesianDate(data.Cut_ReadyJahit)}` 
-                                      : (data.Start_Cut 
-                                          ? `Mulai Cutting: ${formatIndonesianDate(data.Start_Cut)}` 
-                                          : "Proses pemotongan bahan")}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })()}
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
 
-                          {/* Step 8: Sew Clothes Step */}
-                          {data.Cut_ReadyJahit && (() => {
-                            const isCompleted = !!data.Jahit_ReadyQC;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Finish Sew Clothes" : "Start Sew Clothes";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Kain Siap Press: ${formatIndonesianDateTime(data.Kain_ReadyPress)}` 
+                                        : (data.Ambil_Kain 
+                                            ? `Ambil Kain: ${formatIndonesianDateTime(data.Ambil_Kain)}` 
+                                            : "Proses persiapan kain")}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                              );
+                            })()}
+
+                            {/* Step 6: Press Step */}
+                            {data.Kain_ReadyPress && (() => {
+                              const isCompleted = !!data.Press_ReadyCut;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Finish Press" : "Start Press";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Selesai Jahit: ${formatIndonesianDate(data.Jahit_ReadyQC)}` 
-                                      : (data.Start_Jahit 
-                                          ? `Mulai Jahit: ${formatIndonesianDate(data.Start_Jahit)}` 
-                                          : "Proses penjahitan pakaian")}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Selesai Press: ${formatIndonesianDateTime(data.Press_ReadyCut)}` 
+                                        : (data.Start_Press 
+                                            ? `Mulai Press: ${formatIndonesianDateTime(data.Start_Press)}` 
+                                            : "Proses pemotongan & pengepresan")}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
 
-                          {/* Step 9: Quality Control Step */}
-                          {data.Jahit_ReadyQC && (() => {
-                            const isCompleted = !!data.FinalQC_Packiing;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Finish Quality Control" : "Start Quality Control";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                            {/* Step 7: Cutting Step */}
+                            {data.Press_ReadyCut && (() => {
+                              const isCompleted = !!data.Cut_ReadyJahit;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Finish Cutting" : "Start Cutting";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Selesai QC: ${formatIndonesianDate(data.FinalQC_Packiing)}` 
-                                      : (data.Start_QC 
-                                          ? `Mulai QC: ${formatIndonesianDate(data.Start_QC)}` 
-                                          : "Proses penjaminan mutu")}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Selesai Cutting: ${formatIndonesianDateTime(data.Cut_ReadyJahit)}` 
+                                        : (data.Start_Cut 
+                                            ? `Mulai Cutting: ${formatIndonesianDateTime(data.Start_Cut)}` 
+                                            : "Proses pemotongan bahan")}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
 
-                          {/* Step 10: Packing Step */}
-                          {data.FinalQC_Packiing && (() => {
-                            const isCompleted = !!data.QC_ReadyGudang;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Packed and ready to pickup" : "Packing Process";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                            {/* Step 8: Sew Clothes Step */}
+                            {data.Cut_ReadyJahit && (() => {
+                              const isCompleted = !!data.Jahit_ReadyQC;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Finish Sew Clothes" : "Start Sew Clothes";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Siap Diambil: ${formatIndonesianDate(data.QC_ReadyGudang)}` 
-                                      : `Proses Packing (sejak ${formatIndonesianDate(data.FinalQC_Packiing)})`}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Selesai Jahit: ${formatIndonesianDateTime(data.Jahit_ReadyQC)}` 
+                                        : (data.Start_Jahit 
+                                            ? `Mulai Jahit: ${formatIndonesianDateTime(data.Start_Jahit)}` 
+                                            : "Proses penjahitan pakaian")}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
+                              );
+                            })()}
 
-                          {/* Step 11: Pickup Step */}
-                          {data.QC_ReadyGudang && (() => {
-                            const isCompleted = !!data.Final_Cust;
-                            const isOngoing = !isCompleted;
-                            const label = isCompleted ? "Received by the customer" : "Waiting Customer Pickup";
-                            return (
-                              <div className="relative pl-8">
-                                <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
-                                  isCompleted 
-                                    ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
-                                    : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
-                                }`}>
-                                  {isCompleted ? (
-                                    <Check size={11} strokeWidth={3} />
-                                  ) : (
-                                    <div className="size-1.5 bg-white rounded-full animate-ping" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className={`text-xs font-bold transition-colors ${
-                                      isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
-                                    }`}>
-                                      {label}
-                                    </h4>
+                            {/* Step 9: Quality Control Step */}
+                            {data.Jahit_ReadyQC && (() => {
+                              const isCompleted = !!data.FinalQC_Packiing;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Finish Quality Control" : "Start Quality Control";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
                                     {isCompleted ? (
-                                      <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
-                                        Selesai
-                                      </span>
+                                      <Check size={11} strokeWidth={3} />
                                     ) : (
-                                      <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
-                                        On Going
-                                      </span>
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
                                     )}
                                   </div>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">
-                                    {isCompleted 
-                                      ? `Diterima Pelanggan: ${formatIndonesianDate(data.Final_Cust)}` 
-                                      : `Menunggu Diambil (sejak ${formatIndonesianDate(data.QC_ReadyGudang)})`}
-                                  </p>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Selesai QC: ${formatIndonesianDateTime(data.FinalQC_Packiing)}` 
+                                        : (data.Start_QC 
+                                            ? `Mulai QC: ${formatIndonesianDateTime(data.Start_QC)}` 
+                                            : "Proses penjaminan mutu")}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
+                              );
+                            })()}
+
+                            {/* Step 10: Packing Step */}
+                            {data.FinalQC_Packiing && (() => {
+                              const isCompleted = !!data.QC_ReadyGudang;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Packed and ready to pickup" : "Packing Process";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
+                                    {isCompleted ? (
+                                      <Check size={11} strokeWidth={3} />
+                                    ) : (
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Siap Diambil: ${formatIndonesianDateTime(data.QC_ReadyGudang)}` 
+                                        : `Proses Packing (sejak ${formatIndonesianDateTime(data.FinalQC_Packiing)})`}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Step 11: Pickup Step */}
+                            {data.QC_ReadyGudang && (() => {
+                              const isCompleted = !!data.Final_Cust;
+                              const isOngoing = !isCompleted;
+                              const label = isCompleted ? "Received by the customer" : "Waiting Customer Pickup";
+                              return (
+                                <div className="relative pl-8">
+                                  <div className={`absolute left-0 top-0.5 flex-shrink-0 flex items-center justify-center rounded-full w-5 h-5 border transition-all duration-300 z-10 ${
+                                    isCompleted 
+                                      ? "bg-emerald-500 border-emerald-400 text-white shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+                                      : "bg-blue-500 border-blue-400 text-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" 
+                                  }`}>
+                                    {isCompleted ? (
+                                      <Check size={11} strokeWidth={3} />
+                                    ) : (
+                                      <div className="size-1.5 bg-white rounded-full animate-ping" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h4 className={`text-xs font-bold transition-colors ${
+                                        isCompleted ? "text-slate-200" : "text-blue-300 font-semibold"
+                                      }`}>
+                                        {label}
+                                      </h4>
+                                      {isCompleted ? (
+                                        <span className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 flex-shrink-0">
+                                          Selesai
+                                        </span>
+                                      ) : (
+                                        <span className="text-[9px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 animate-pulse flex-shrink-0">
+                                          On Going
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                      {isCompleted 
+                                        ? `Diterima Pelanggan: ${formatIndonesianDateTime(data.Final_Cust)}` 
+                                        : `Menunggu Diambil (sejak ${formatIndonesianDateTime(data.QC_ReadyGudang)})`}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
                       <div className="rounded-lg bg-slate-950/50 border border-slate-800/40 p-4 space-y-3.5">
                         <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase flex items-center gap-1.5 border-b border-slate-800/60 pb-2">
@@ -2896,8 +2903,11 @@ export default function ProductionPipelinePage() {
                                   </tr>
                                 ) : (foDetailItemsQuery.data?.items ?? []).length === 0 ? (
                                   <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 italic">
-                                      Tidak ada item detail ditemukan.
+                                    <td colSpan={6} className="px-4 py-10 text-center">
+                                      <div className="flex flex-col items-center justify-center gap-1 py-4">
+                                        <span className="text-sm font-semibold text-slate-400">Data tidak ditemukan</span>
+                                        <span className="text-xs text-slate-500">Tidak ada detail item yang tercatat untuk Form Order ini.</span>
+                                      </div>
                                     </td>
                                   </tr>
                                 ) : (
@@ -2938,8 +2948,9 @@ export default function ProductionPipelinePage() {
                                 Gagal memuat detail item: {foDetailItemsQuery.error instanceof Error ? foDetailItemsQuery.error.message : "Error"}
                               </div>
                             ) : (foDetailItemsQuery.data?.items ?? []).length === 0 ? (
-                              <div className="text-slate-500 py-8 text-center italic text-xs">
-                                Tidak ada item detail ditemukan.
+                              <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-6 text-center">
+                                <span className="block text-xs font-semibold text-slate-400">Data tidak ditemukan</span>
+                                <span className="block text-[11px] text-slate-500 mt-1">Tidak ada detail item yang tercatat untuk Form Order ini.</span>
                               </div>
                             ) : (
                               (foDetailItemsQuery.data?.items ?? []).map((item) => (
@@ -3123,8 +3134,11 @@ export default function ProductionPipelinePage() {
                                   </tr>
                                 ) : (foJobDetailsQuery.data?.items ?? []).length === 0 ? (
                                   <tr>
-                                    <td colSpan={8} className="px-4 py-8 text-center text-slate-500 italic">
-                                      Tidak ada item job ditemukan.
+                                    <td colSpan={8} className="px-4 py-10 text-center">
+                                      <div className="flex flex-col items-center justify-center gap-1 py-4">
+                                        <span className="text-sm font-semibold text-slate-400">Data tidak ditemukan</span>
+                                        <span className="text-xs text-slate-500">Tidak ada log/detail pekerjaan yang tercatat untuk Form Order ini.</span>
+                                      </div>
                                     </td>
                                   </tr>
                                 ) : (
@@ -3165,8 +3179,9 @@ export default function ProductionPipelinePage() {
                                 Gagal memuat detail job: {foJobDetailsQuery.error instanceof Error ? foJobDetailsQuery.error.message : "Error"}
                               </div>
                             ) : (foJobDetailsQuery.data?.items ?? []).length === 0 ? (
-                              <div className="text-slate-500 py-8 text-center italic text-xs">
-                                Tidak ada item job ditemukan.
+                              <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-6 text-center">
+                                <span className="block text-xs font-semibold text-slate-400">Data tidak ditemukan</span>
+                                <span className="block text-[11px] text-slate-500 mt-1">Tidak ada log/detail pekerjaan yang tercatat untuk Form Order ini.</span>
                               </div>
                             ) : (
                               (foJobDetailsQuery.data?.items ?? []).map((job) => (
