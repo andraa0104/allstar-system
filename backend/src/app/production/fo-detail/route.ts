@@ -18,14 +18,14 @@ export async function GET(request: Request) {
       );
     }
 
-    const [rows] = await pool.execute<RowDataPacket[]>(
+    let [rows] = await pool.execute<RowDataPacket[]>(
       `SELECT 
          TRIM(c.no_fo) AS no_fo,
-         c.doc_date,
-         c.order_date,
-         c.deposit_date,
-         c.customer,
-         c.qty_order,
+         k.doc_date AS doc_date,
+         k.order_date AS order_date,
+         k.tgl_um AS deposit_date,
+         COALESCE(c.customer, k.customer) AS customer,
+         k.qty_order AS qty_order,
          k.ket AS remark,
          k.deadline_date,
          k.pos_date,
@@ -63,6 +63,54 @@ export async function GET(request: Request) {
        LIMIT 1`,
       { noFo },
     );
+
+    if (rows.length === 0) {
+      const [fallbackRows] = await pool.execute<RowDataPacket[]>(
+        `SELECT 
+           TRIM(k.no_fo) AS no_fo,
+           k.doc_date AS doc_date,
+           k.order_date AS order_date,
+           k.tgl_um AS deposit_date,
+           COALESCE(c.customer, k.customer) AS customer,
+           k.qty_order AS qty_order,
+           k.ket AS remark,
+           k.deadline_date,
+           k.pos_date,
+           k.QC_ReadyGudang,
+           k.sales,
+           k.desain,
+           k.totalrp,
+           k.uang_muka,
+           k.tgl_um,
+           k.sisa_tagihan,
+           k.bayar_lunas,
+           k.tgl_pelunasan,
+           k.telp_cus,
+           k.Desain_Ready,
+           k.Start_Layout,
+           k.Layout_ReadyPrint AS Layout_Ready,
+           k.Start_Print,
+           k.Print_ReadyPress,
+           k.Ambil_Kain,
+           k.Kain_ReadyPress,
+           k.Start_Press,
+           k.Press_ReadyCut,
+           k.Start_Cut,
+           k.Cut_ReadyJahit,
+           k.Start_Jahit,
+           k.Jahit_ReadyQC,
+           k.Start_QC,
+           k.FinalQC_Packiing,
+           k.QC_ReadyGudang,
+           k.Final_Cust
+         FROM tb_kdfo k
+         LEFT JOIN tb_control c ON TRIM(k.no_fo) = TRIM(c.no_fo)
+         WHERE TRIM(k.no_fo) = :noFo
+         LIMIT 1`,
+        { noFo },
+      );
+      rows = fallbackRows;
+    }
 
     if (rows.length === 0) {
       return jsonResponse(

@@ -2252,11 +2252,13 @@ export default function ProductionPipelinePage() {
                       </div>
 
                       {/* Lini Masa / Remaining Deadline */}
-                      <RemainingDeadlineWidget
-                        posDate={data.pos_date}
-                        deadlineDate={data.deadline_date}
-                        qcReadyGudang={data.QC_ReadyGudang}
-                      />
+                      {data.Desain_Ready && (
+                        <RemainingDeadlineWidget
+                          posDate={data.pos_date}
+                          deadlineDate={data.deadline_date}
+                          qcReadyGudang={data.QC_ReadyGudang}
+                        />
+                      )}
 
                       {/* Status Working / Workflow Stepper */}
                       <div className="rounded-lg bg-slate-950/50 border border-slate-800/40 p-4 space-y-4">
@@ -2265,7 +2267,7 @@ export default function ProductionPipelinePage() {
                           Status Alur Kerja (Working Status)
                         </h3>
 
-                        {!data.pos_date ? (
+                        {!data.Desain_Ready ? (
                           <div className="rounded-lg border border-slate-800/50 bg-slate-950/40 p-5 text-center">
                             <span className="block text-xs font-semibold text-slate-400">Data tidak ditemukan</span>
                             <span className="block text-[11px] text-slate-500 mt-1">Data status alur kerja tidak ditemukan atau belum dimulai.</span>
