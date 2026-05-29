@@ -129,6 +129,7 @@ export const api = {
     page?: number;
     limit?: number | "all";
     search?: string;
+    username?: string;
   }) {
     const searchParams = new URLSearchParams();
 
@@ -140,6 +141,9 @@ export const api = {
     }
     if (params?.search) {
       searchParams.set("search", params.search);
+    }
+    if (params?.username) {
+      searchParams.set("username", params.username);
     }
 
     const query = searchParams.toString();
@@ -153,6 +157,7 @@ export const api = {
     limit?: number | "all";
     search?: string;
     deadline_type?: string;
+    username?: string;
   }) {
     const searchParams = new URLSearchParams();
 
@@ -168,6 +173,9 @@ export const api = {
     if (params?.deadline_type) {
       searchParams.set("deadline_type", params.deadline_type);
     }
+    if (params?.username) {
+      searchParams.set("username", params.username);
+    }
 
     const query = searchParams.toString();
     return apiFetch<FoOutstandingResponse>(
@@ -179,6 +187,7 @@ export const api = {
     page?: number;
     limit?: number | "all";
     search?: string;
+    username?: string;
   }) {
     const searchParams = new URLSearchParams();
 
@@ -190,6 +199,9 @@ export const api = {
     }
     if (params?.search) {
       searchParams.set("search", params.search);
+    }
+    if (params?.username) {
+      searchParams.set("username", params.username);
     }
 
     const query = searchParams.toString();
@@ -205,6 +217,7 @@ export const api = {
     filter_type?: string;
     start_date?: string;
     end_date?: string;
+    username?: string;
   }) {
     const searchParams = new URLSearchParams();
 
@@ -226,6 +239,9 @@ export const api = {
     if (params?.end_date) {
       searchParams.set("end_date", params.end_date);
     }
+    if (params?.username) {
+      searchParams.set("username", params.username);
+    }
 
     const query = searchParams.toString();
     return apiFetch<FoOutstandingResponse>(
@@ -239,6 +255,7 @@ export const api = {
     search?: string;
     search_by?: string;
     status_category?: number;
+    username?: string;
   }) {
     const searchParams = new URLSearchParams();
 
@@ -256,6 +273,9 @@ export const api = {
     }
     if (params?.status_category !== undefined) {
       searchParams.set("status_category", String(params.status_category));
+    }
+    if (params?.username) {
+      searchParams.set("username", params.username);
     }
 
     const query = searchParams.toString();

@@ -9,7 +9,13 @@
         "U": false,
         "D": false
       },
-      "Production Pipeline": {
+      "Order Control": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Order Job": {
         "V": false,
         "C": false,
         "U": false,
@@ -20,6 +26,96 @@
         "C": false,
         "U": false,
         "D": false
+      }
+    }
+  },
+  {
+    "kd_user": "USR0006",
+    "updated_at": "2026-05-29T01:31:50.262Z",
+    "permissions": {
+      "Dashboard": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "Order Control": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Order Job": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "System Settings": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      }
+    }
+  },
+  {
+    "kd_user": "USR0015",
+    "updated_at": "2026-05-29T01:33:38.122Z",
+    "permissions": {
+      "Dashboard": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "Order Control": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Order Job": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "System Settings": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      }
+    }
+  },
+  {
+    "kd_user": "USR0013",
+    "updated_at": "2026-05-29T07:33:27.508Z",
+    "permissions": {
+      "Dashboard": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "Order Control": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Order Job": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "System Settings": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
       }
     }
   }

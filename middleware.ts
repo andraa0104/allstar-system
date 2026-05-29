@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedPrefixes = ["/dashboard", "/pipeline", "/settings"];
+const protectedPrefixes = ["/dashboard", "/form-order", "/settings"];
 
 export function middleware(request: NextRequest) {
   const isProtected = protectedPrefixes.some((prefix) =>
@@ -19,5 +19,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/pipeline/:path*", "/settings/:path*"],
+  matcher: ["/dashboard/:path*", "/form-order/:path*", "/settings/:path*"],
 };

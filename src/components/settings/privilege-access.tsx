@@ -8,7 +8,8 @@ import type { AdminAccount } from "@/lib/types";
 
 const MODULE_OPTIONS = [
   "Dashboard",
-  "Production Pipeline",
+  "Order Control",
+  "Order Job",
   "System Settings",
 ];
 

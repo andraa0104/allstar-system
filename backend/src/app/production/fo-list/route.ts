@@ -28,6 +28,7 @@ export async function GET(request: Request) {
     const statusCategory = url.searchParams.get("status_category") ?? "0";
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
+    const username = url.searchParams.get("username")?.trim() ?? "";
     const isAllData = rawLimit === "all";
     const limit = isAllData
       ? null
@@ -67,7 +68,8 @@ export async function GET(request: Request) {
         k.Jahit_ReadyQC AS Jahit_ReadyQC,
         k.Start_QC AS Start_QC,
         k.QC_ReadyGudang AS QC_ReadyGudang,
-        k.Final_Cust AS Final_Cust
+        k.Final_Cust AS Final_Cust,
+        c.username AS username
       FROM tb_kdfo k
       LEFT JOIN (
         SELECT c1.*
@@ -156,6 +158,9 @@ export async function GET(request: Request) {
 
     let filterWhereClause = statusClause;
     const params: any = {};
+    if (username) {
+      params.username = username;
+    }
 
     if (search) {
       let searchClause = "1=1";
@@ -173,6 +178,59 @@ export async function GET(request: Request) {
         params.search = search;
       }
       filterWhereClause = `(${statusClause}) AND (${searchClause})`;
+    }
+
+    let userRole = "";
+    if (username) {
+      const [userRows] = await pool.execute<any[]>(
+        "SELECT tingkat FROM tb_pengguna WHERE LOWER(TRIM(pengguna)) = LOWER(TRIM(?)) LIMIT 1",
+        [username]
+      );
+      if (userRows && userRows.length > 0) {
+        userRole = userRows[0].tingkat.toLowerCase().trim();
+      }
+    }
+
+    const roleStatusMap: Record<string, string[]> = {
+      "tukang-desain": ["", "-", "Proses Desain"],
+      "tukang-layout": ["Desain Ready", "Start Layout"],
+      "pengawas": ["Layout Ready", "Persiapan Bahan Kain/Kaos for DTF"],
+      "tukang-print": ["Bahan Kain/Kaos DTF Ready", "Start PrintOut", "Start Print"],
+      "tukang-press": ["PrintOut Ready", "Start Press"],
+      "tukang-pressdtf": ["PrintOut Ready", "Start Press"],
+      "tukang-cutting": ["Kain Ready Cutting", "Start Cutting", "Start Cut"],
+      "tukang-qc": ["Kain Ready Jahit", "Kaos/Jersy Siap QC", "Start QC", "Siap Packing", "Start Jahit", "Produk Ready QC"],
+      "tukang-layanics": ["Selesai Packing, Siap diAmbil"]
+    };
+
+    if (username && userRole && roleStatusMap[userRole]) {
+      const allowedStatuses = roleStatusMap[userRole];
+      const hasNullOrEmpty = allowedStatuses.some(s => s === "" || s === "-");
+      const nonNullStatuses = allowedStatuses.filter(s => s !== "" && s !== "-");
+      
+      let condition = "";
+      if (nonNullStatuses.length > 0) {
+        const statusCondition = nonNullStatuses.map((_, i) => `:status_${i}`).join(", ");
+        condition = `unique_fo.status_lanjutan IN (${statusCondition})`;
+        nonNullStatuses.forEach((val, i) => {
+          params[`status_${i}`] = val;
+        });
+      }
+      
+      if (hasNullOrEmpty) {
+        const nullCond = `unique_fo.status_lanjutan IS NULL OR TRIM(unique_fo.status_lanjutan) = '' OR TRIM(unique_fo.status_lanjutan) = '-'`;
+        condition = condition ? `(${condition} OR ${nullCond})` : nullCond;
+      }
+      
+      filterWhereClause = `(${filterWhereClause}) AND (${condition})`;
+      params.username = username;
+    } else if (username) {
+      filterWhereClause = `(${filterWhereClause}) AND EXISTS (
+        SELECT 1 FROM tb_control tc_user
+        WHERE TRIM(tc_user.no_fo) = TRIM(unique_fo.no_fo)
+        AND LOWER(TRIM(tc_user.username)) = LOWER(TRIM(:username))
+      )`;
+      params.username = username;
     }
 
     const [countRows] = await pool.execute<FoListCountRow[]>(

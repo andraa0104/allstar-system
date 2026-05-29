@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { LogOut, Menu, PanelLeftClose, Search } from "lucide-react";
+import { ChevronRight, LogOut, Menu, PanelLeftClose, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     queueMicrotask(() => setUser(getSession()));
@@ -27,6 +28,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setIsSidebarVisible(window.matchMedia("(min-width: 1024px)").matches);
     });
   }, []);
+
+  // Auto-expand parent menu if any of its children is active
+  useEffect(() => {
+    navigation.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some((child) => pathname.startsWith(child.href));
+        if (hasActiveChild) {
+          setExpandedMenus((prev) => ({ ...prev, [item.label]: true }));
+        }
+      }
+    });
+  }, [pathname]);
+
+  const toggleMenu = (label: string) => {
+    setExpandedMenus((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
 
   // Fetch live permissions for the logged-in user to dynamically control sidebar menu visibility
   const { data: userPerms } = useQuery({
@@ -76,15 +93,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   // Filter helper based on V (View) permission or default fallbacks
-  const hasMenuAccess = (label: string) => {
+  const hasMenuAccess = (item: any): boolean => {
     if (!user) return false;
     // Admins are superusers and always have absolute menu access
     if (user.role.toLowerCase() === "admin") return true;
 
+    if (item.children) {
+      // Parent menu is visible if at least one sub-menu is accessible
+      return item.children.some((child: any) => hasMenuAccess(child));
+    }
+
     if (!userPerms?.permissions) {
       return true;
     }
-    const modulePerms = userPerms.permissions[label];
+    const modulePerms = userPerms.permissions[item.label];
     return !!modulePerms?.V;
   };
 
@@ -121,9 +143,62 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="space-y-1 px-4 py-5">
           {navigation
-            .filter((item) => hasMenuAccess(item.label))
+            .filter((item) => hasMenuAccess(item))
             .map((item) => {
               const Icon = item.icon;
+
+              if (item.children) {
+                const isOpen = !!expandedMenus[item.label];
+                const hasActiveChild = item.children.some((child) => pathname.startsWith(child.href));
+
+                return (
+                  <div key={item.label} className="space-y-1">
+                    <button
+                      onClick={() => toggleMenu(item.label)}
+                      className={clsx(
+                        "w-full flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition text-slate-300 hover:bg-slate-900 hover:text-white",
+                        hasActiveChild && "text-white bg-slate-900/40"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon size={18} />
+                        {item.label}
+                      </div>
+                      <span className={clsx("transition-transform duration-200", isOpen ? "rotate-90" : "rotate-0")}>
+                        <ChevronRight size={14} className="text-slate-400" />
+                      </span>
+                    </button>
+
+                    <div
+                      className={clsx(
+                        "pl-8 space-y-1 overflow-hidden transition-all duration-300 ease-in-out border-l border-slate-800/80 ml-5",
+                        isOpen ? "max-h-40 opacity-100 py-1" : "max-h-0 opacity-0 pointer-events-none"
+                      )}
+                    >
+                      {item.children
+                        .filter((child) => hasMenuAccess(child))
+                        .map((child) => {
+                          const childActive = pathname === child.href;
+                          return (
+                            <a
+                              key={child.href}
+                              href={child.href}
+                              className={clsx(
+                                "block rounded-lg px-3 py-2 text-xs font-medium transition",
+                                childActive
+                                  ? "bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-400/20"
+                                  : "text-slate-400 hover:bg-slate-900/50 hover:text-white"
+                              )}
+                            >
+                              {child.label}
+                            </a>
+                          );
+                        })}
+                    </div>
+                  </div>
+                );
+              }
+
               const active =
                 pathname === item.href ||
                 (item.href !== "/dashboard" && pathname.startsWith(item.href));

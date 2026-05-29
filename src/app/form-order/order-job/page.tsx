@@ -17,6 +17,7 @@ import {
   Calendar,
   AlertTriangle,
   ShieldAlert,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -27,28 +28,28 @@ import type { FoDetailData, FoOutstandingRow, FoListRow } from "@/lib/types";
 
 const pipelineCards = [
   {
-    title: "FO Outstanding",
+    title: "FO Job",
     description: "Form order yang masih menunggu tindak lanjut.",
     icon: ClipboardList,
     tone: "text-amber-200",
     type: "outstanding",
   },
   {
-    title: "FO Deadline",
+    title: "Deadline",
     description: "Order aktif yang perlu dipantau berdasarkan tanggal deadline.",
     icon: Timer,
     tone: "text-cyan-200",
     type: "deadline",
   },
   {
-    title: "FO Overdue",
+    title: "Overdue",
     description: "Order aktif yang telah melewati batas deadline pengerjaan.",
     icon: AlertTriangle,
     tone: "text-rose-300",
     type: "overdue",
   },
   {
-    title: "FO Complete",
+    title: "Job Complete",
     description: "Arsip order selesai untuk histori dan referensi produksi.",
     icon: Archive,
     tone: "text-emerald-200",
@@ -416,7 +417,7 @@ function getDeadlineStyle(deadlineDateStr: string | null, status: string | null)
   return "";
 }
 
-export default function ProductionPipelinePage() {
+export default function OrderJobPage() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<any>(null);
 
@@ -428,7 +429,7 @@ export default function ProductionPipelinePage() {
 
   // Fetch live permissions for the logged-in user
   const { data: userPerms, isLoading: isLoadingPerms } = useQuery({
-    queryKey: ["my-pipeline-privilege", session?.id],
+    queryKey: ["my-job-privilege", session?.id],
     queryFn: () => api.getPermissions(session?.id),
     enabled: !!session?.id,
   });
@@ -438,12 +439,28 @@ export default function ProductionPipelinePage() {
   const [isOverdueOpen, setIsOverdueOpen] = useState(false);
   const [selectedFo, setSelectedFo] = useState<FoOutstandingRow | null>(null);
 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFo, setEditFo] = useState<{ no_fo: string; customer: string; qty_order?: number } | null>(null);
+
+  // Queries for Edit Modal
+  const editFoDetailQuery = useQuery({
+    queryKey: ["edit-fo-detail", editFo?.no_fo],
+    queryFn: () => api.getFoDetail(editFo!.no_fo),
+    enabled: isEditModalOpen && !!editFo?.no_fo,
+  });
+
+  const editFoDetailsQuery = useQuery({
+    queryKey: ["edit-fo-details", editFo?.no_fo],
+    queryFn: () => api.getFoDetailItems({ no_fo: editFo!.no_fo, limit: "all" }),
+    enabled: isEditModalOpen && !!editFo?.no_fo,
+  });
+
   const [activeTab, setActiveTab] = useState<"summary" | "detail" | "job">("summary");
   const [detailSearch, setDetailSearch] = useState("");
   const [detailLimit, setDetailLimit] = useState<number | "all">(5);
   const [detailPage, setDetailPage] = useState(1);
 
-  // Check live access for "Production Pipeline" V permission
+  // Check live access for "Order Job" V permission
   const hasAccess = (() => {
     if (!session) return false;
     // Admins are superusers and always bypass view limitations
@@ -452,8 +469,10 @@ export default function ProductionPipelinePage() {
     if (!userPerms?.permissions) {
       return true; // Default fallback if no custom privilege JSON exists
     }
-    return !!userPerms.permissions["Production Pipeline"]?.V;
+    return !!userPerms.permissions["Order Job"]?.V;
   })();
+
+  const usernameFilter = session?.role?.toLowerCase() !== "admin" ? session?.username : undefined;
 
   const [jobSearch, setJobSearch] = useState("");
   const [jobLimit, setJobLimit] = useState<number | "all">(5);
@@ -509,55 +528,58 @@ export default function ProductionPipelinePage() {
   const [foListStatusCategory, setFoListStatusCategory] = useState<number>(1);
 
   const outstandingSummary = useQuery({
-    queryKey: ["fo-outstanding-summary"],
-    queryFn: () => api.getFoOutstanding({ page: 1, limit: 5 }),
+    queryKey: ["fo-outstanding-summary", usernameFilter],
+    queryFn: () => api.getFoOutstanding({ page: 1, limit: 5, username: usernameFilter }),
   });
 
   const deadlineSummary = useQuery({
-    queryKey: ["fo-deadline-summary"],
-    queryFn: () => api.getFoDeadlineSummary({ page: 1, limit: 5 }),
+    queryKey: ["fo-deadline-summary", usernameFilter],
+    queryFn: () => api.getFoDeadlineSummary({ page: 1, limit: 5, username: usernameFilter }),
   });
 
   const overdueSummary = useQuery({
-    queryKey: ["fo-overdue-summary"],
-    queryFn: () => api.getFoOverdue({ page: 1, limit: 5 }),
+    queryKey: ["fo-overdue-summary", usernameFilter],
+    queryFn: () => api.getFoOverdue({ page: 1, limit: 5, username: usernameFilter }),
   });
 
   const completeSummary = useQuery({
-    queryKey: ["fo-complete-summary", completeFilterType, completeStartDate, completeEndDate],
-    queryFn: () => api.getFoComplete({ page: 1, limit: 5, filter_type: completeFilterType, start_date: completeStartDate, end_date: completeEndDate }),
+    queryKey: ["fo-complete-summary", completeFilterType, completeStartDate, completeEndDate, usernameFilter],
+    queryFn: () => api.getFoComplete({ page: 1, limit: 5, filter_type: completeFilterType, start_date: completeStartDate, end_date: completeEndDate, username: usernameFilter }),
   });
 
   const outstandingTable = useQuery({
-    queryKey: ["fo-outstanding", outstandingPage, outstandingLimit, outstandingSearch],
+    queryKey: ["fo-outstanding", outstandingPage, outstandingLimit, outstandingSearch, usernameFilter],
     queryFn: () =>
       api.getFoOutstanding({
         page: outstandingPage,
         limit: outstandingLimit,
         search: outstandingSearch,
+        username: usernameFilter,
       }),
     enabled: isOutstandingOpen,
   });
 
   const deadlineTable = useQuery({
-    queryKey: ["fo-deadline", deadlinePage, deadlineLimit, deadlineSearch, deadlineType],
+    queryKey: ["fo-deadline", deadlinePage, deadlineLimit, deadlineSearch, deadlineType, usernameFilter],
     queryFn: () =>
       api.getFoDeadlineSummary({
         page: deadlinePage,
         limit: deadlineLimit,
         search: deadlineSearch,
         deadline_type: deadlineType,
+        username: usernameFilter,
       }),
     enabled: isDeadlineOpen,
   });
 
   const overdueTable = useQuery({
-    queryKey: ["fo-overdue", overduePage, overdueLimit, overdueSearch],
+    queryKey: ["fo-overdue", overduePage, overdueLimit, overdueSearch, usernameFilter],
     queryFn: () =>
       api.getFoOverdue({
         page: overduePage,
         limit: overdueLimit,
         search: overdueSearch,
+        username: usernameFilter,
       }),
     enabled: isOverdueOpen,
   });
@@ -565,6 +587,12 @@ export default function ProductionPipelinePage() {
   const foDetailQuery = useQuery({
     queryKey: ["fo-detail", selectedFo?.no_fo],
     queryFn: () => api.getFoDetail(selectedFo!.no_fo),
+    enabled: !!selectedFo?.no_fo,
+  });
+
+  const foDetailAllItemsQuery = useQuery({
+    queryKey: ["fo-detail-all-items", selectedFo?.no_fo],
+    queryFn: () => api.getFoDetailItems({ no_fo: selectedFo!.no_fo, limit: "all" }),
     enabled: !!selectedFo?.no_fo,
   });
 
@@ -619,7 +647,7 @@ export default function ProductionPipelinePage() {
   );
 
   const completeTable = useQuery({
-    queryKey: ["fo-complete", completePage, completeLimit, completeSearch, completeFilterType, completeStartDate, completeEndDate],
+    queryKey: ["fo-complete", completePage, completeLimit, completeSearch, completeFilterType, completeStartDate, completeEndDate, usernameFilter],
     queryFn: () =>
       api.getFoComplete({
         page: completePage,
@@ -628,6 +656,7 @@ export default function ProductionPipelinePage() {
         filter_type: completeFilterType,
         start_date: completeStartDate,
         end_date: completeEndDate,
+        username: usernameFilter,
       }),
     enabled: isCompleteOpen,
   });
@@ -639,7 +668,7 @@ export default function ProductionPipelinePage() {
   );
 
   const foListTable = useQuery({
-    queryKey: ["fo-list", foListPage, foListLimit, foListSearch, foListSearchBy, foListStatusCategory],
+    queryKey: ["fo-list", foListPage, foListLimit, foListSearch, foListSearchBy, foListStatusCategory, usernameFilter],
     queryFn: () =>
       api.getFoList({
         page: foListPage,
@@ -647,6 +676,7 @@ export default function ProductionPipelinePage() {
         search: foListSearch,
         search_by: foListSearchBy,
         status_category: foListStatusCategory,
+        username: usernameFilter,
       }),
   });
 
@@ -664,7 +694,7 @@ export default function ProductionPipelinePage() {
         <ShieldAlert size={48} className="text-rose-500 mb-4 animate-pulse" />
         <h2 className="text-base font-bold text-white mb-2">Access Denied (403)</h2>
         <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
-          Anda tidak memiliki hak akses (View Privilege) untuk menu **Production Pipeline**. Hubungi administrator utama Anda untuk meminta izin otorisasi.
+          Anda tidak memiliki hak akses (View Privilege) untuk menu **Order Job**. Hubungi administrator utama Anda untuk meminta izin otorisasi.
         </p>
       </div>
     );
@@ -673,8 +703,8 @@ export default function ProductionPipelinePage() {
   return (
     <>
       <PageHeader
-        title="Production Pipeline"
-        description="Kelola alur FO dari outstanding, deadline, sampai complete dalam satu modul produksi."
+        title="Order Job"
+        description="Kelola alur FO dari outstanding, deadline, sampai complete dalam sub menu order job."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -904,42 +934,44 @@ export default function ProductionPipelinePage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* Kategori Status filter dropdown */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-400">Status:</span>
-              <select
-                value={foListStatusCategory}
-                onChange={(e) => {
-                  setFoListStatusCategory(Number(e.target.value));
-                  setFoListPage(1);
-                }}
-                className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
-              >
-                <option value={0}>FO ALL</option>
-                <option value={1}>FO DP - Antrian</option>
-                <option value={2}>FO DP + Non DP Antrian</option>
-                <option value={3}>FO Belum DP</option>
-                <option value={4}>DP - Belum KLaim</option>
-                <option value={5}>Belum KLaim - FinalQC</option>
-                <option value={6}>Proses Desain</option>
-                <option value={7}>Desain Ready</option>
-                <option value={8}>Proses Susun Layout</option>
-                <option value={9}>Layout Print Ready</option>
-                <option value={10}>Proses Persiapan Bahan Kain</option>
-                <option value={11}>Proses Printing</option>
-                <option value={12}>Ready to Press</option>
-                <option value={13}>Proses Press</option>
-                <option value={14}>Kain Ready Cutting</option>
-                <option value={15}>Proses Cutting</option>
-                <option value={16}>Ready Jahit</option>
-                <option value={17}>Proses Jahit</option>
-                <option value={18}>Ready QC</option>
-                <option value={19}>Proses QC</option>
-                <option value={20}>Ready Packing</option>
-                <option value={21}>Packing Selesai</option>
-                <option value={22}>Final Cust</option>
-              </select>
-            </div>
+            {/* Kategori Status filter dropdown - only visible for Admins */}
+            {session?.role?.toLowerCase() === "admin" && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-400">Status:</span>
+                <select
+                  value={foListStatusCategory}
+                  onChange={(e) => {
+                    setFoListStatusCategory(Number(e.target.value));
+                    setFoListPage(1);
+                  }}
+                  className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
+                >
+                  <option value={0}>FO ALL</option>
+                  <option value={1}>FO DP - Antrian</option>
+                  <option value={2}>FO DP + Non DP Antrian</option>
+                  <option value={3}>FO Belum DP</option>
+                  <option value={4}>DP - Belum KLaim</option>
+                  <option value={5}>Belum KLaim - FinalQC</option>
+                  <option value={6}>Proses Desain</option>
+                  <option value={7}>Desain Ready</option>
+                  <option value={8}>Proses Susun Layout</option>
+                  <option value={9}>Layout Print Ready</option>
+                  <option value={10}>Proses Persiapan Bahan Kain</option>
+                  <option value={11}>Proses Printing</option>
+                  <option value={12}>Ready to Press</option>
+                  <option value={13}>Proses Press</option>
+                  <option value={14}>Kain Ready Cutting</option>
+                  <option value={15}>Proses Cutting</option>
+                  <option value={16}>Ready Jahit</option>
+                  <option value={17}>Proses Jahit</option>
+                  <option value={18}>Ready QC</option>
+                  <option value={19}>Proses QC</option>
+                  <option value={20}>Ready Packing</option>
+                  <option value={21}>Packing Selesai</option>
+                  <option value={22}>Final Cust</option>
+                </select>
+              </div>
+            )}
 
             {/* Search filter dropdown */}
             <div className="flex items-center gap-2">
@@ -1066,13 +1098,27 @@ export default function ProductionPipelinePage() {
                     </span>
                   </td>
                   <td className="px-5 py-4 text-right">
-                    <button
-                      aria-label={`Lihat detail ${item.no_fo}`}
-                      className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
-                      onClick={() => setSelectedFo(item as any)}
-                    >
-                      <Eye size={15} />
-                    </button>
+                       <button
+                         aria-label={`Update order ${item.no_fo}`}
+                         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner mr-1.5"
+                         onClick={() => {
+                           setEditFo({
+                             no_fo: item.no_fo,
+                             customer: item.customer ?? "",
+                             qty_order: Number(item.qty_order) || 0,
+                           });
+                           setIsEditModalOpen(true);
+                         }}
+                       >
+                         <Pencil size={14} />
+                       </button>
+                       <button
+                         aria-label={`Lihat detail ${item.no_fo}`}
+                         className="inline-flex size-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
+                         onClick={() => setSelectedFo(item as any)}
+                       >
+                         <Eye size={15} />
+                       </button>
                   </td>
                 </tr>
               ))}
@@ -1117,13 +1163,27 @@ export default function ProductionPipelinePage() {
                   }`}>
                     {item.status_lanjutan ?? "-"}
                   </span>
-                  <button
-                    aria-label={`Lihat detail ${item.no_fo}`}
-                    className="inline-flex size-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
-                    onClick={() => setSelectedFo(item as any)}
-                  >
-                    <Eye size={14} />
-                  </button>
+                     <button
+                       aria-label={`Update order ${item.no_fo}`}
+                       className="inline-flex size-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner mr-1.5"
+                       onClick={() => {
+                         setEditFo({
+                           no_fo: item.no_fo,
+                           customer: item.customer ?? "",
+                           qty_order: Number(item.qty_order) || 0,
+                         });
+                         setIsEditModalOpen(true);
+                       }}
+                     >
+                       <Pencil size={13} />
+                     </button>
+                     <button
+                       aria-label={`Lihat detail ${item.no_fo}`}
+                       className="inline-flex size-7 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
+                       onClick={() => setSelectedFo(item as any)}
+                     >
+                       <Eye size={14} />
+                     </button>
                 </div>
               </div>
 
@@ -1283,6 +1343,20 @@ export default function ProductionPipelinePage() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
+                          aria-label={`Update order ${item.no_fo}`}
+                          className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner mr-1.5"
+                          onClick={() => {
+                            setEditFo({
+                              no_fo: item.no_fo,
+                              customer: item.customer ?? "",
+                              qty_order: Number((item as any).qty_order) || 0,
+                            });
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
                           aria-label={`Lihat detail ${item.no_fo}`}
                           className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-700 text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-300"
                           onClick={() => setSelectedFo(item)}
@@ -1333,13 +1407,29 @@ export default function ProductionPipelinePage() {
                         </div>
                       </div>
                       
-                      <button
+                      <div className="flex gap-2 items-center">
+                        <button
+                          aria-label={`Update order ${item.no_fo}`}
+                          className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner"
+                          onClick={() => {
+                            setEditFo({
+                              no_fo: item.no_fo,
+                              customer: item.customer ?? "",
+                              qty_order: Number((item as any).qty_order) || 0,
+                            });
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
                         aria-label={`Lihat detail ${item.no_fo}`}
                         className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
                         onClick={() => setSelectedFo(item)}
                       >
                         <Eye size={18} />
                       </button>
+                      </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-800/60 pt-3 text-xs">
@@ -1537,6 +1627,20 @@ export default function ProductionPipelinePage() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
+                          aria-label={`Update order ${item.no_fo}`}
+                          className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner mr-1.5"
+                          onClick={() => {
+                            setEditFo({
+                              no_fo: item.no_fo,
+                              customer: item.customer ?? "",
+                              qty_order: Number((item as any).qty_order) || 0,
+                            });
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
                           aria-label={`Lihat detail ${item.no_fo}`}
                           className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-700 text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-300"
                           onClick={() => setSelectedFo(item)}
@@ -1587,13 +1691,29 @@ export default function ProductionPipelinePage() {
                         </div>
                       </div>
                       
-                      <button
+                      <div className="flex gap-2 items-center">
+                        <button
+                          aria-label={`Update order ${item.no_fo}`}
+                          className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner"
+                          onClick={() => {
+                            setEditFo({
+                              no_fo: item.no_fo,
+                              customer: item.customer ?? "",
+                              qty_order: Number((item as any).qty_order) || 0,
+                            });
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
                         aria-label={`Lihat detail ${item.no_fo}`}
                         className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
                         onClick={() => setSelectedFo(item)}
                       >
                         <Eye size={18} />
                       </button>
+                      </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-800/60 pt-3 text-xs">
@@ -1795,6 +1915,20 @@ export default function ProductionPipelinePage() {
                       </td>
                       <td className="px-5 py-4 text-right">
                         <button
+                          aria-label={`Update order ${item.no_fo}`}
+                          className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner mr-1.5"
+                          onClick={() => {
+                            setEditFo({
+                              no_fo: item.no_fo,
+                              customer: item.customer ?? "",
+                              qty_order: Number((item as any).qty_order) || 0,
+                            });
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
                           aria-label={`Lihat detail ${item.no_fo}`}
                           className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-700 text-slate-300 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-300"
                           onClick={() => setSelectedFo(item)}
@@ -1844,13 +1978,29 @@ export default function ProductionPipelinePage() {
                         </div>
                       </div>
                       
-                      <button
+                      <div className="flex gap-2 items-center">
+                        <button
+                          aria-label={`Update order ${item.no_fo}`}
+                          className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300 transition-colors shadow-inner"
+                          onClick={() => {
+                            setEditFo({
+                              no_fo: item.no_fo,
+                              customer: item.customer ?? "",
+                              qty_order: Number((item as any).qty_order) || 0,
+                            });
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
                         aria-label={`Lihat detail ${item.no_fo}`}
                         className="inline-flex size-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-950 text-slate-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors shadow-inner"
                         onClick={() => setSelectedFo(item)}
                       >
                         <Eye size={18} />
                       </button>
+                      </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-800/60 pt-3 text-xs">
@@ -2314,9 +2464,57 @@ export default function ProductionPipelinePage() {
                         </div>
                         <div className="rounded-lg bg-slate-950 p-3 border border-slate-800/60">
                           <span className="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Quantity</span>
-                          <span className="mt-1 block text-sm font-bold text-emerald-400">
-                            {data.qty_order ?? 0} Pcs
-                          </span>
+                          {foDetailAllItemsQuery.isLoading ? (
+                            <span className="mt-1 block text-sm font-medium text-slate-400 italic">
+                              Loading Qty...
+                            </span>
+                          ) : (
+                            (() => {
+                              const totalQty = data.qty_order ?? 0;
+                              const detailItems = foDetailAllItemsQuery.data?.items ?? [];
+                              
+                              const hasSetelan = detailItems.some(item => 
+                                item.produk && item.produk.toUpperCase().includes("SETELAN")
+                              );
+
+                              if (!hasSetelan) {
+                                return (
+                                  <span className="mt-1 block text-sm font-bold text-emerald-400">
+                                    {totalQty} Pcs
+                                  </span>
+                                );
+                              }
+
+                              let setelanQty = 0;
+                              let nonSetelanQty = 0;
+                              detailItems.forEach(item => {
+                                const qty = Number(item.qty) || 0;
+                                if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
+                                  setelanQty += qty;
+                                } else {
+                                  nonSetelanQty += qty;
+                                }
+                              });
+
+                              return (
+                                <div className="space-y-1.5 mt-1">
+                                  <span className="block text-sm font-bold text-emerald-400">
+                                    {totalQty}
+                                  </span>
+                                  <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 font-medium leading-relaxed">
+                                    <div className="flex justify-between items-center gap-2">
+                                      <span>SETELAN:</span>
+                                      <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
+                                    </div>
+                                    <div className="flex justify-between items-center gap-2">
+                                      <span>Bukan SETELAN:</span>
+                                      <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()
+                          )}
                         </div>
                       </div>
 
@@ -2993,6 +3191,18 @@ export default function ProductionPipelinePage() {
 
                       {activeTab === "detail" && (
                         <div className="space-y-4">
+                          {/* Standing Header showing No FO and Customer when scrolling */}
+                          <div className="sticky -top-6 bg-slate-900 z-10 py-3 px-6 border-b border-slate-800 -mx-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-md mb-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">No FO:</span>
+                              <span className="font-mono text-xs font-bold text-cyan-300">{data.no_fo}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer:</span>
+                              <span className="text-xs font-semibold text-slate-200 truncate max-w-[200px]" title={data.customer ?? ""}>{data.customer ?? "-"}</span>
+                            </div>
+                          </div>
+
                           {/* Title & Filter Toggle Button */}
                           <div className="flex justify-between items-center border-b border-slate-800/40 pb-2">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -3222,6 +3432,18 @@ export default function ProductionPipelinePage() {
 
                       {activeTab === "job" && (
                         <div className="space-y-4">
+                          {/* Standing Header showing No FO and Customer when scrolling */}
+                          <div className="sticky -top-6 bg-slate-900 z-10 py-3 px-6 border-b border-slate-800 -mx-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-md mb-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">No FO:</span>
+                              <span className="font-mono text-xs font-bold text-cyan-300">{data.no_fo}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Customer:</span>
+                              <span className="text-xs font-semibold text-slate-200 truncate max-w-[200px]" title={data.customer ?? ""}>{data.customer ?? "-"}</span>
+                            </div>
+                          </div>
+
                           {/* Title & Filter Toggle Button */}
                           <div className="flex justify-between items-center border-b border-slate-800/40 pb-2">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -3346,7 +3568,7 @@ export default function ProductionPipelinePage() {
                                       <td className="px-4 py-2.5 text-slate-300">{job.status_awal || "-"}</td>
                                       <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">{formatIndonesianDateTime(job.datetime_lanjutan)}</td>
                                       <td className="px-4 py-2.5 text-slate-300">{job.status_lanjutan || "-"}</td>
-                                      <td className="px-4 py-2.5 font-semibold text-slate-200 whitespace-nowrap">{job.username || "-"}</td>
+                                      <td className="px-4 py-2.5 font-semibold text-slate-200 whitespace-nowrap">{job.nama_pegawai || job.username || "-"}</td>
                                       <td className="px-4 py-2.5 whitespace-nowrap">
                                         {job.jobdesk ? (
                                           <span className="inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 uppercase tracking-wide font-mono">
@@ -3390,7 +3612,7 @@ export default function ProductionPipelinePage() {
                                     </div>
                                     <div className="text-right flex-shrink-0">
                                       <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Pegawai</span>
-                                      <span className="block text-xs font-semibold text-slate-200 mt-0.5">{job.username || "-"}</span>
+                                      <span className="block text-xs font-semibold text-slate-200 mt-0.5">{job.nama_pegawai || job.username || "-"}</span>
                                     </div>
                                   </div>
 
@@ -3467,11 +3689,224 @@ export default function ProductionPipelinePage() {
                 })()
               ) : null}
             </div>
+          </section>
+        </div>
+      ) : null}
+
+      {/* Update Order Job Modal */}
+      {isEditModalOpen && editFo ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <section className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900/90 shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col max-h-[90vh]">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
+            
+            <header className="flex items-start justify-between gap-4 p-6 pb-4 border-b border-slate-800 flex-shrink-0">
+              <div>
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Pencil className="text-amber-400 size-5" />
+                  Update Order Job
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Detail informasi penugasan pekerjaan Form Order.
+                </p>
+              </div>
+              <button
+                aria-label="Tutup update modal"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditFo(null);
+                }}
+              >
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+              <div className="space-y-4">
+                {/* No FO */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">No FO</label>
+                  <input
+                    type="text"
+                    value={editFo.no_fo}
+                    readOnly
+                    className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Nama Customer */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nama Customer</label>
+                  <input
+                    type="text"
+                    value={editFo.customer || "-"}
+                    readOnly
+                    className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed"
+                  />
+                </div>
+
+                
+                {/* Qty & Breakdown */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Qty</label>
+                  
+                  {editFoDetailsQuery.isLoading || editFoDetailQuery.isLoading ? (
+                    <div className="flex items-center gap-2 p-3 rounded-lg border border-slate-850 bg-slate-950/40 text-xs text-slate-400 italic">
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-amber-400"></div>
+                      <span>Menghitung jumlah produk...</span>
+                    </div>
+                  ) : (
+                    (() => {
+                      const totalQty = editFoDetailQuery.data?.qty_order ?? editFo.qty_order ?? 0;
+                      const detailItems = editFoDetailsQuery.data?.items ?? [];
+                      const hasSetelan = detailItems.some(item => 
+                        item.produk && item.produk.toUpperCase().includes("SETELAN")
+                      );
+
+                      if (!hasSetelan) {
+                        return (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={`${totalQty} Pcs`}
+                              readOnly
+                              className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed font-semibold"
+                            />
+                            <p className="text-[11px] text-slate-400 italic">
+                              * Produk ini tidak memiliki item SETELAN, total qty otomatis menggunakan satuan Pcs.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      let setelanQty = 0;
+                      let nonSetelanQty = 0;
+                      detailItems.forEach(item => {
+                        const qty = Number(item.qty) || 0;
+                        if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
+                          setelanQty += qty;
+                        } else {
+                          nonSetelanQty += qty;
+                        }
+                      });
+
+                      return (
+                        <div className="space-y-3">
+                          <input
+                            type="text"
+                            value={`${totalQty}`}
+                            readOnly
+                            className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed font-bold"
+                          />
+                          
+                          <div className="rounded-lg bg-slate-950 p-4 border border-slate-800/80 space-y-2">
+                            <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              Breakdown Detail Qty:
+                            </span>
+                            <div className="flex justify-between items-center text-xs border-b border-slate-850 pb-2">
+                              <span className="text-slate-400">Total Qty (SETELAN):</span>
+                              <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
+                            </div>
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-slate-400">Total Qty (Bukan SETELAN):</span>
+                              <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+
+                {/* Previous Job */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Previous Job</label>
+                  <input
+                    type="text"
+                    value={editFoDetailQuery.isLoading ? "Loading..." : (editFoDetailQuery.data?.status_lanjutan || "Desain Belum Tersedia")}
+                    readOnly
+                    className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed font-semibold text-amber-200"
+                  />
+                </div>
+                {/* Date Previous Job */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date Previous Job</label>
+                  <input
+                    type="text"
+                    value={
+                      editFoDetailQuery.isLoading
+                        ? "Loading..."
+                        : (editFoDetailQuery.data?.status_lanjutan
+                            ? formatIndonesianDateTime(editFoDetailQuery.data?.datetime_lanjutan ?? null)
+                            : formatIndonesianDate(editFoDetailQuery.data?.order_date ?? null))
+                    }
+                    readOnly
+                    className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Next Job */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Next Job</label>
+                  <input
+                    type="text"
+                    value={(() => {
+                      if (editFoDetailQuery.isLoading) return "Loading...";
+                      
+                      const prevJobRaw = editFoDetailQuery.data?.status_lanjutan || "Desain Belum Tersedia";
+                      const prevJob = prevJobRaw.trim().toUpperCase();
+                      const userRole = (session?.role || "").trim().toLowerCase();
+
+                      if (prevJob === "DESAIN BELUM TERSEDIA" || prevJob === "-") {
+                        return "Desain Ready";
+                      }
+                      if (prevJob === "DESAIN READY") {
+                        return "Start Layout";
+                      }
+                      if (prevJob === "START LAYOUT") {
+                        return "Layout Ready";
+                      }
+                      if (prevJob === "LAYOUT READY") {
+                        return "Persiapan Bahan Kain/Kaos for DTF";
+                      }
+                      if (prevJob === "PERSIAPAN BAHAN KAIN/KAOS FOR DTF") {
+                        if (userRole === "tukang-print") {
+                          return "Start PrintOut";
+                        }
+                        return "Bahan Kain/Kaos DTF Ready"; // Untuk role Pengawas dan fallback
+                      }
+                      if (prevJob === "START PRINTOUT") {
+                        return "PrintOut Ready";
+                      }
+
+                      /*
+                       * TODO: Sisa alur pengerjaan berikutnya:
+                       * - Start Press
+                       * - Kaos/Jersey Siap QC
+                       * - Start QC
+                       * - Siap Packing
+                       * - Selesai Packing
+                       * - Siap Diambil
+                       * - Produk diterima Customer
+                       */
+                      return "-";
+                    })()}
+                    readOnly
+                    className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-emerald-400 outline-none cursor-not-allowed font-bold"
+                  />
+                </div>
+
+                
+              </div>
+            </div>
 
             <footer className="p-6 pt-4 border-t border-slate-800 flex justify-end flex-shrink-0">
               <button
                 className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
-                onClick={() => setSelectedFo(null)}
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditFo(null);
+                }}
               >
                 Tutup
               </button>

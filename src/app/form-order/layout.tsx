@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 
-export default function PipelineLayout({
+export default function FormOrderLayout({
   children,
 }: {
   children: React.ReactNode;

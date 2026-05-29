@@ -126,6 +126,8 @@ export type FoDetailData = {
   Start_QC: string | null;
   FinalQC_Packiing: string | null;
   Final_Cust: string | null;
+  status_lanjutan?: string | null;
+  datetime_lanjutan?: string | null;
 };
 
 export type FoDetailItemRow = {
@@ -155,6 +157,7 @@ export type FoJobDetailRow = {
   status_awal: string | null;
   datetime_lanjutan: string | null;
   username: string | null;
+  nama_pegawai: string | null;
   jobdesk: string | null;
   ket: string | null;
   status_lanjutan: string | null;

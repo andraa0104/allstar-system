@@ -62,7 +62,8 @@ export async function GET(request: Request) {
       // Return empty default matrix if not found
       const defaultMatrix: Record<string, Record<string, boolean>> = {
         "Dashboard": { V: false, C: false, U: false, D: false },
-        "Production Pipeline": { V: false, C: false, U: false, D: false },
+        "Order Control": { V: false, C: false, U: false, D: false },
+        "Order Job": { V: false, C: false, U: false, D: false },
         "System Settings": { V: false, C: false, U: false, D: false },
       };
       return jsonResponse({ kd_user, permissions: defaultMatrix }, {}, request);

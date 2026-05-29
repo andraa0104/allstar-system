@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     const endDate = url.searchParams.get("end_date")?.trim() ?? "";
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
+    const username = url.searchParams.get("username")?.trim() ?? "";
     const isAllData = rawLimit === "all";
     const limit = isAllData
       ? null
@@ -41,7 +42,8 @@ export async function GET(request: Request) {
         k.customer AS customer,
         c.status_lanjutan AS status_lanjutan,
         k.QC_ReadyGudang AS QC_ReadyGudang,
-        k.Final_Cust AS Final_Cust
+        k.Final_Cust AS Final_Cust,
+        c.username AS username
       FROM tb_kdfo k
       LEFT JOIN (
         SELECT c1.*
@@ -56,14 +58,19 @@ export async function GET(request: Request) {
       WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
-    // Completion date is either Final_Cust (if delivered) or QC_ReadyGudang (if ready in warehouse)
-    const completedDateExpr = "COALESCE(unique_fo.Final_Cust, unique_fo.QC_ReadyGudang)";
+    // Completion date is either next step's datetime_awal (if user is provided) or overall FO completion dates
+    const completedDateExpr = username
+      ? "ucj.completed_date"
+      : "COALESCE(unique_fo.Final_Cust, unique_fo.QC_ReadyGudang)";
 
     let dateClause = "1=1";
     const params: any = {
       search,
       searchPattern: `%${search}%`,
     };
+    if (username) {
+      params.username = username;
+    }
 
     if (filterType === "today") {
       dateClause = `DATE(${completedDateExpr}) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))`;
@@ -79,35 +86,85 @@ export async function GET(request: Request) {
       params.endDate = endDate;
     }
 
-    const searchWhereClause = `(
-      :search = ''
-      OR unique_fo.no_fo LIKE :searchPattern
-      OR unique_fo.customer LIKE :searchPattern
-    )
-    AND (
-      unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil'
-      OR unique_fo.status_lanjutan = 'Produk diterima Customer'
-    )
-    AND (${dateClause})`;
+    let querySql = "";
+    let countSql = "";
 
-    const [countRows] = await pool.execute<CompleteCountRow[]>(
-      `SELECT COUNT(*) AS total
-       FROM (${uniqueFoSql}) AS unique_fo
-       WHERE ${searchWhereClause}`,
-      params,
-    );
+    if (username) {
+      const ucjJoinSql = `
+        INNER JOIN (
+          SELECT 
+            um.no_fo,
+            COALESCE(MIN(tc_next.datetime_awal), um.max_user_datetime) AS completed_date
+          FROM (
+            SELECT 
+              TRIM(no_fo) AS no_fo,
+              MAX(id) AS max_user_id,
+              MAX(datetime_lanjutan) AS max_user_datetime
+            FROM tb_control
+            WHERE LOWER(TRIM(username)) = LOWER(TRIM(:username))
+            GROUP BY TRIM(no_fo)
+          ) um
+          LEFT JOIN tb_control tc_next ON TRIM(tc_next.no_fo) = um.no_fo AND tc_next.id > um.max_user_id
+          GROUP BY um.no_fo, um.max_user_datetime
+        ) ucj ON TRIM(unique_fo.no_fo) = ucj.no_fo
+      `;
 
+      const searchWhereClause = `(
+        :search = ''
+        OR unique_fo.no_fo LIKE :searchPattern
+        OR unique_fo.customer LIKE :searchPattern
+      )
+      AND NOT (
+        LOWER(TRIM(unique_fo.username)) = LOWER(TRIM(:username))
+        AND unique_fo.status_lanjutan LIKE 'Start%'
+      )
+      AND ucj.completed_date IS NOT NULL
+      AND (${dateClause})`;
+
+      countSql = `SELECT COUNT(*) AS total
+                  FROM (${uniqueFoSql}) AS unique_fo
+                  ${ucjJoinSql}
+                  WHERE ${searchWhereClause}`;
+
+      const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
+      querySql = `SELECT unique_fo.no_fo, unique_fo.doc_date, unique_fo.customer, 
+                         unique_fo.status_lanjutan, unique_fo.status_lanjutan AS status,
+                         unique_fo.QC_ReadyGudang, unique_fo.Final_Cust
+                  FROM (${uniqueFoSql}) AS unique_fo
+                  ${ucjJoinSql}
+                  WHERE ${searchWhereClause}
+                  ORDER BY unique_fo.no_fo DESC, unique_fo.doc_date DESC
+                  ${paginationSql}`;
+    } else {
+      const searchWhereClause = `(
+        :search = ''
+        OR unique_fo.no_fo LIKE :searchPattern
+        OR unique_fo.customer LIKE :searchPattern
+      )
+      AND (
+        unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil'
+        OR unique_fo.status_lanjutan = 'Produk diterima Customer'
+      )
+      AND (${dateClause})`;
+
+      countSql = `SELECT COUNT(*) AS total
+                  FROM (${uniqueFoSql}) AS unique_fo
+                  WHERE ${searchWhereClause}`;
+
+      const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
+      querySql = `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status,
+                         QC_ReadyGudang, Final_Cust
+                  FROM (${uniqueFoSql}) AS unique_fo
+                  WHERE ${searchWhereClause}
+                  ORDER BY no_fo DESC, doc_date DESC
+                  ${paginationSql}`;
+    }
+
+    const [countRows] = await pool.execute<CompleteCountRow[]>(countSql, params);
     const total = Number(countRows[0]?.total ?? 0);
+
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
-    const [items] = await pool.execute<CompleteRow[]>(
-      `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status,
-              QC_ReadyGudang, Final_Cust
-       FROM (${uniqueFoSql}) AS unique_fo
-       WHERE ${searchWhereClause}
-       ORDER BY unique_fo.no_fo DESC, unique_fo.doc_date DESC
-       ${paginationSql}`,
-      params,
-    );
+    const [items] = await pool.execute<CompleteRow[]>(querySql, params);
 
     return jsonResponse(
       {

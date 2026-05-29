@@ -30,6 +30,7 @@ export async function GET(request: Request) {
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
     const deadlineType = url.searchParams.get("deadline_type")?.trim() ?? "";
+    const username = url.searchParams.get("username")?.trim() ?? "";
     const isAllData = rawLimit === "all";
     const limit = isAllData
       ? null
@@ -46,7 +47,8 @@ export async function GET(request: Request) {
         k.customer AS customer,
         c.status_lanjutan AS status_lanjutan,
         c.datetime_lanjutan AS latest_datetime_lanjutan,
-        k.deadline_date AS deadline_date
+        k.deadline_date AS deadline_date,
+        c.username AS username
       FROM tb_kdfo k
       LEFT JOIN (
         SELECT c1.*
@@ -66,11 +68,6 @@ export async function GET(request: Request) {
       OR unique_fo.no_fo LIKE :searchPattern
       OR unique_fo.customer LIKE :searchPattern
     )
-    AND unique_fo.status_lanjutan IS NOT NULL
-    AND TRIM(unique_fo.status_lanjutan) <> ''
-    AND TRIM(unique_fo.status_lanjutan) <> '-'
-    AND unique_fo.status_lanjutan <> :completedStatus
-    AND unique_fo.status_lanjutan <> :packingReadyStatus
     AND (
       unique_fo.deadline_date IS NOT NULL
       AND unique_fo.deadline_date >= CURDATE()
@@ -83,12 +80,75 @@ export async function GET(request: Request) {
       filterWhereClause += ` AND DATEDIFF(unique_fo.deadline_date, CURDATE()) > 2`;
     }
 
-    const params = {
+    let userRole = "";
+    if (username) {
+      const [userRows] = await pool.execute<any[]>(
+        "SELECT tingkat FROM tb_pengguna WHERE LOWER(TRIM(pengguna)) = LOWER(TRIM(?)) LIMIT 1",
+        [username]
+      );
+      if (userRows && userRows.length > 0) {
+        userRole = userRows[0].tingkat.toLowerCase().trim();
+      }
+    }
+
+    if (!username || userRole !== "tukang-desain") {
+      filterWhereClause += `
+        AND unique_fo.status_lanjutan IS NOT NULL
+        AND TRIM(unique_fo.status_lanjutan) <> ''
+        AND TRIM(unique_fo.status_lanjutan) <> '-'
+        AND unique_fo.status_lanjutan <> :completedStatus
+        AND unique_fo.status_lanjutan <> :packingReadyStatus
+      `;
+    }
+
+    const roleStatusMap: Record<string, string[]> = {
+      "tukang-desain": ["", "-", "Proses Desain"],
+      "tukang-layout": ["Desain Ready", "Start Layout"],
+      "pengawas": ["Layout Ready", "Persiapan Bahan Kain/Kaos for DTF"],
+      "tukang-print": ["Bahan Kain/Kaos DTF Ready", "Start PrintOut", "Start Print"],
+      "tukang-press": ["PrintOut Ready", "Start Press"],
+      "tukang-pressdtf": ["PrintOut Ready", "Start Press"],
+      "tukang-cutting": ["Kain Ready Cutting", "Start Cutting", "Start Cut"],
+      "tukang-qc": ["Kain Ready Jahit", "Kaos/Jersy Siap QC", "Start QC", "Siap Packing", "Start Jahit", "Produk Ready QC"],
+      "tukang-layanics": ["Selesai Packing, Siap diAmbil"]
+    };
+
+    const params: any = {
       completedStatus,
       packingReadyStatus,
       search,
       searchPattern: `%${search}%`,
     };
+
+    if (username && userRole && roleStatusMap[userRole]) {
+      const allowedStatuses = roleStatusMap[userRole];
+      const hasNullOrEmpty = allowedStatuses.some(s => s === "" || s === "-");
+      const nonNullStatuses = allowedStatuses.filter(s => s !== "" && s !== "-");
+      
+      let condition = "";
+      if (nonNullStatuses.length > 0) {
+        const statusCondition = nonNullStatuses.map((_, i) => `:status_${i}`).join(", ");
+        condition = `unique_fo.status_lanjutan IN (${statusCondition})`;
+        nonNullStatuses.forEach((val, i) => {
+          params[`status_${i}`] = val;
+        });
+      }
+      
+      if (hasNullOrEmpty) {
+        const nullCond = `unique_fo.status_lanjutan IS NULL OR TRIM(unique_fo.status_lanjutan) = '' OR TRIM(unique_fo.status_lanjutan) = '-'`;
+        condition = condition ? `(${condition} OR ${nullCond})` : nullCond;
+      }
+      
+      filterWhereClause += ` AND (${condition})`;
+      params.username = username;
+    } else if (username) {
+      filterWhereClause += ` AND unique_fo.status_lanjutan LIKE 'Start%' AND EXISTS (
+        SELECT 1 FROM tb_control tc_user
+        WHERE TRIM(tc_user.no_fo) = TRIM(unique_fo.no_fo)
+        AND LOWER(TRIM(tc_user.username)) = LOWER(TRIM(:username))
+      )`;
+      params.username = username;
+    }
 
     const [countRows] = await pool.execute<OutstandingCountRow[]>(
       `SELECT COUNT(*) AS total

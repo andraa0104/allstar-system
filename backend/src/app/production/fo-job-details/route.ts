@@ -13,6 +13,7 @@ type JobDetailRow = RowDataPacket & {
   status_awal: string | null;
   datetime_lanjutan: Date | string | null;
   username: string | null;
+  nama_pegawai: string | null;
   jobdesk: string | null;
   ket: string | null;
   status_lanjutan: string | null;
@@ -52,6 +53,7 @@ export async function GET(request: Request) {
       whereClause += ` AND (
         no_job LIKE :searchPattern OR 
         username LIKE :searchPattern OR 
+        nama_pegawai LIKE :searchPattern OR 
         jobdesk LIKE :searchPattern OR 
         status_awal LIKE :searchPattern OR 
         ket LIKE :searchPattern
@@ -78,6 +80,7 @@ export async function GET(request: Request) {
         datetime_lanjutan, 
         status_lanjutan, 
         username, 
+        nama_pegawai, 
         jobdesk, 
         ket 
        FROM tb_control 
