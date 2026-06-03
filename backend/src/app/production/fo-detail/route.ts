@@ -57,7 +57,8 @@ export async function GET(request: Request) {
          k.QC_ReadyGudang,
          k.Final_Cust,
          c.status_lanjutan AS status_lanjutan,
-         c.datetime_lanjutan AS datetime_lanjutan
+         c.datetime_lanjutan AS datetime_lanjutan,
+         k.jenis_order AS jenis_order
        FROM tb_control c
        LEFT JOIN tb_kdfo k ON TRIM(c.no_fo) = TRIM(k.no_fo)
        WHERE TRIM(c.no_fo) = :noFo
@@ -106,7 +107,8 @@ export async function GET(request: Request) {
            k.QC_ReadyGudang,
            k.Final_Cust,
            c.status_lanjutan AS status_lanjutan,
-           c.datetime_lanjutan AS datetime_lanjutan
+           c.datetime_lanjutan AS datetime_lanjutan,
+           k.jenis_order AS jenis_order
          FROM tb_kdfo k
          LEFT JOIN tb_control c ON TRIM(k.no_fo) = TRIM(c.no_fo)
          WHERE TRIM(k.no_fo) = :noFo

@@ -338,6 +338,13 @@ export const api = {
     );
   },
 
+  updateJob(payload: { no_fo: string; username: string; nama_pegawai?: string }) {
+    return apiFetch<{ message?: string; nextStatus?: string; ketStatus?: string }>("/production/update-job", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
   updateProfile(payload: ProfilePayload) {
     return apiFetch<{ message?: string }>("/settings/profile", {
       method: "PUT",

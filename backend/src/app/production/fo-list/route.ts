@@ -43,10 +43,10 @@ export async function GET(request: Request) {
         TRIM(k.no_fo) AS no_fo,
         k.order_date AS order_date,
         k.doc_date AS doc_date,
-        c.datetime_lanjutan AS datetime_lanjutan,
+        k.order_date AS datetime_lanjutan,
         k.customer AS customer,
         k.qty_order AS qty_order,
-        c.status_lanjutan AS status_lanjutan,
+        k.ket_status AS status_lanjutan,
         k.deadline_date AS deadline_date,
         k.uang_muka AS uang_muka,
         k.sisa_tagihan AS sisa_tagihan,
@@ -69,91 +69,104 @@ export async function GET(request: Request) {
         k.Start_QC AS Start_QC,
         k.QC_ReadyGudang AS QC_ReadyGudang,
         k.Final_Cust AS Final_Cust,
-        c.username AS username
+        NULL AS username
       FROM tb_kdfo k
-      LEFT JOIN (
-        SELECT c1.*
-        FROM tb_control c1
-        INNER JOIN (
-          SELECT MAX(id) AS max_id
-          FROM tb_control
-          WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
-          GROUP BY TRIM(no_fo)
-        ) c2 ON c1.id = c2.max_id
-      ) c ON TRIM(k.no_fo) = TRIM(c.no_fo)
       WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
+    const getCategoryClause = (cat: number): string => {
+      switch (cat) {
+        case 1: // FO DP - Antrian
+          return "unique_fo.uang_muka > 0 AND unique_fo.FinalQC_Packiing IS NULL";
+        case 2: // FO DP + Non DP Antrian
+          return "unique_fo.FinalQC_Packiing IS NULL";
+        case 3: // FO Belum DP
+          return "unique_fo.uang_muka = 0 AND unique_fo.sisa_tagihan = unique_fo.totalrp";
+        case 4: // DP - Belum KLaim
+          return "unique_fo.jurnal IS NULL AND unique_fo.uang_muka > 0";
+        case 5: // Belum KLaim - FinalQC
+          return "unique_fo.jurnal IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
+        case 6: // Proses Desain
+          return "unique_fo.uang_muka IS NOT NULL AND unique_fo.Desain_Ready IS NULL";
+        case 7: // Desain Ready
+          return "unique_fo.Start_Layout IS NULL AND unique_fo.Desain_Ready IS NOT NULL";
+        case 8: // Proses Susun Layout
+          return "unique_fo.Start_Layout IS NOT NULL AND unique_fo.Layout_ReadyPrint IS NULL";
+        case 9: // Layout Print Ready
+          return "unique_fo.Layout_ReadyPrint IS NOT NULL AND unique_fo.Start_Print IS NULL";
+        case 10: // Proses Persiapan Bahan Kain
+          return "unique_fo.Kain_ReadyPress IS NULL AND unique_fo.Ambil_Kain IS NOT NULL";
+        case 11: // Proses Printing
+          return "(unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NULL) OR (unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NULL)";
+        case 12: // Ready to Press
+          return "unique_fo.Start_Press IS NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NOT NULL";
+        case 13: // Proses Press
+          return "unique_fo.Start_Press IS NOT NULL AND unique_fo.Press_ReadyCut IS NULL";
+        case 14: // Kain Ready Cutting
+          return "unique_fo.Start_Cut IS NULL AND unique_fo.Press_ReadyCut IS NOT NULL";
+        case 15: // Proses Cutting
+          return "unique_fo.Start_Cut IS NOT NULL AND unique_fo.Cut_ReadyJahit IS NULL";
+        case 16: // Ready Jahit
+          return "unique_fo.Start_Jahit IS NULL AND unique_fo.Cut_ReadyJahit IS NOT NULL";
+        case 17: // Proses Jahit
+          return "unique_fo.Start_Jahit IS NOT NULL AND unique_fo.Jahit_ReadyQC IS NULL";
+        case 18: // Ready QC
+          return "unique_fo.Start_QC IS NULL AND unique_fo.Jahit_ReadyQC IS NOT NULL";
+        case 19: // Proses QC
+          return "unique_fo.Start_QC IS NOT NULL AND unique_fo.FinalQC_Packiing IS NULL";
+        case 20: // Ready Packing
+          return "unique_fo.QC_ReadyGudang IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
+        case 21: // Packing Selesai
+          return "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NULL";
+        case 22: // Final Cust
+          return "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NOT NULL";
+        default:
+          return "1=1";
+      }
+    };
+
+    let userRole = "";
+    if (username) {
+      const [userRows] = await pool.execute<any[]>(
+        "SELECT tingkat FROM tb_pengguna WHERE LOWER(TRIM(pengguna)) = LOWER(TRIM(?)) LIMIT 1",
+        [username]
+      );
+      if (userRows && userRows.length > 0) {
+        userRole = userRows[0].tingkat.toLowerCase().trim();
+      }
+    }
+
     let statusClause = "1=1";
-    switch (Number(statusCategory)) {
-      case 1: // FO DP - Antrian
-        statusClause = "unique_fo.uang_muka > 0 AND unique_fo.FinalQC_Packiing IS NULL";
-        break;
-      case 2: // FO DP + Non DP Antrian
-        statusClause = "unique_fo.FinalQC_Packiing IS NULL";
-        break;
-      case 3: // FO Belum DP
-        statusClause = "unique_fo.uang_muka = 0 AND unique_fo.sisa_tagihan = unique_fo.totalrp";
-        break;
-      case 4: // DP - Belum KLaim
-        statusClause = "unique_fo.jurnal IS NULL AND unique_fo.uang_muka > 0";
-        break;
-      case 5: // Belum KLaim - FinalQC
-        statusClause = "unique_fo.jurnal IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
-        break;
-      case 6: // Proses Desain
-        statusClause = "unique_fo.uang_muka IS NOT NULL AND unique_fo.Desain_Ready IS NULL";
-        break;
-      case 7: // Desain Ready
-        statusClause = "unique_fo.Start_Layout IS NULL AND unique_fo.Desain_Ready IS NOT NULL";
-        break;
-      case 8: // Proses Susun Layout
-        statusClause = "unique_fo.Start_Layout IS NOT NULL AND unique_fo.Layout_ReadyPrint IS NULL";
-        break;
-      case 9: // Layout Print Ready
-        statusClause = "unique_fo.Layout_ReadyPrint IS NOT NULL AND unique_fo.Start_Print IS NULL";
-        break;
-      case 10: // Proses Persiapan Bahan Kain
-        statusClause = "unique_fo.Kain_ReadyPress IS NULL AND unique_fo.Ambil_Kain IS NOT NULL";
-        break;
-      case 11: // Proses Printing
-        statusClause = "(unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NULL) OR (unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NULL)";
-        break;
-      case 12: // Ready to Press
-        statusClause = "unique_fo.Start_Press IS NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NOT NULL";
-        break;
-      case 13: // Proses Press
-        statusClause = "unique_fo.Start_Press IS NOT NULL AND unique_fo.Press_ReadyCut IS NULL";
-        break;
-      case 14: // Kain Ready Cutting
-        statusClause = "unique_fo.Start_Cut IS NULL AND unique_fo.Press_ReadyCut IS NOT NULL";
-        break;
-      case 15: // Proses Cutting
-        statusClause = "unique_fo.Start_Cut IS NOT NULL AND unique_fo.Cut_ReadyJahit IS NULL";
-        break;
-      case 16: // Ready Jahit
-        statusClause = "unique_fo.Start_Jahit IS NULL AND unique_fo.Cut_ReadyJahit IS NOT NULL";
-        break;
-      case 17: // Proses Jahit
-        statusClause = "unique_fo.Start_Jahit IS NOT NULL AND unique_fo.Jahit_ReadyQC IS NULL";
-        break;
-      case 18: // Ready QC
-        statusClause = "unique_fo.Start_QC IS NULL AND unique_fo.Jahit_ReadyQC IS NOT NULL";
-        break;
-      case 19: // Proses QC
-        statusClause = "unique_fo.Start_QC IS NOT NULL AND unique_fo.FinalQC_Packiing IS NULL";
-        break;
-      case 20: // Ready Packing
-        statusClause = "unique_fo.QC_ReadyGudang IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
-        break;
-      case 21: // Packing Selesai
-        statusClause = "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NULL";
-        break;
-      case 22: // Final Cust
-        statusClause = "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NOT NULL";
-        break;
-      default:
-        statusClause = "1=1";
+    const selectedCat = Number(statusCategory);
+    if (selectedCat > 0) {
+      statusClause = getCategoryClause(selectedCat);
+      if (username && userRole) {
+        if (userRole === "tukang-press") {
+          statusClause = `(${statusClause} AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        } else if (userRole === "tukang-pressdtf") {
+          statusClause = `(${statusClause} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        }
+      }
+    } else if (username && userRole) {
+      if (userRole === "tukang-desain") {
+        statusClause = getCategoryClause(6);
+      } else if (userRole === "tukang-layout") {
+        statusClause = getCategoryClause(7);
+      } else if (userRole === "pengawas") {
+        statusClause = `(${getCategoryClause(9)} OR ${getCategoryClause(14)})`;
+      } else if (userRole === "tukang-print") {
+        statusClause = getCategoryClause(9);
+      } else if (userRole === "tukang-press") {
+        statusClause = `(${getCategoryClause(12)} AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+      } else if (userRole === "tukang-pressdtf") {
+        statusClause = `(${getCategoryClause(12)} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+      } else if (userRole === "tukang-cutting") {
+        statusClause = getCategoryClause(14);
+      } else if (userRole === "tukang-qc") {
+        statusClause = `(${getCategoryClause(16)} OR ${getCategoryClause(18)} OR ${getCategoryClause(20)})`;
+      } else if (userRole === "tukang-layanics") {
+        statusClause = `(${getCategoryClause(21)} OR ${getCategoryClause(22)})`;
+      }
     }
 
     let filterWhereClause = statusClause;
@@ -180,59 +193,6 @@ export async function GET(request: Request) {
       filterWhereClause = `(${statusClause}) AND (${searchClause})`;
     }
 
-    let userRole = "";
-    if (username) {
-      const [userRows] = await pool.execute<any[]>(
-        "SELECT tingkat FROM tb_pengguna WHERE LOWER(TRIM(pengguna)) = LOWER(TRIM(?)) LIMIT 1",
-        [username]
-      );
-      if (userRows && userRows.length > 0) {
-        userRole = userRows[0].tingkat.toLowerCase().trim();
-      }
-    }
-
-    const roleStatusMap: Record<string, string[]> = {
-      "tukang-desain": ["", "-", "Proses Desain"],
-      "tukang-layout": ["Desain Ready", "Start Layout"],
-      "pengawas": ["Layout Ready", "Persiapan Bahan Kain/Kaos for DTF"],
-      "tukang-print": ["Bahan Kain/Kaos DTF Ready", "Start PrintOut", "Start Print"],
-      "tukang-press": ["PrintOut Ready", "Start Press"],
-      "tukang-pressdtf": ["PrintOut Ready", "Start Press"],
-      "tukang-cutting": ["Kain Ready Cutting", "Start Cutting", "Start Cut"],
-      "tukang-qc": ["Kain Ready Jahit", "Kaos/Jersy Siap QC", "Start QC", "Siap Packing", "Start Jahit", "Produk Ready QC"],
-      "tukang-layanics": ["Selesai Packing, Siap diAmbil"]
-    };
-
-    if (username && userRole && roleStatusMap[userRole]) {
-      const allowedStatuses = roleStatusMap[userRole];
-      const hasNullOrEmpty = allowedStatuses.some(s => s === "" || s === "-");
-      const nonNullStatuses = allowedStatuses.filter(s => s !== "" && s !== "-");
-      
-      let condition = "";
-      if (nonNullStatuses.length > 0) {
-        const statusCondition = nonNullStatuses.map((_, i) => `:status_${i}`).join(", ");
-        condition = `unique_fo.status_lanjutan IN (${statusCondition})`;
-        nonNullStatuses.forEach((val, i) => {
-          params[`status_${i}`] = val;
-        });
-      }
-      
-      if (hasNullOrEmpty) {
-        const nullCond = `unique_fo.status_lanjutan IS NULL OR TRIM(unique_fo.status_lanjutan) = '' OR TRIM(unique_fo.status_lanjutan) = '-'`;
-        condition = condition ? `(${condition} OR ${nullCond})` : nullCond;
-      }
-      
-      filterWhereClause = `(${filterWhereClause}) AND (${condition})`;
-      params.username = username;
-    } else if (username) {
-      filterWhereClause = `(${filterWhereClause}) AND EXISTS (
-        SELECT 1 FROM tb_control tc_user
-        WHERE TRIM(tc_user.no_fo) = TRIM(unique_fo.no_fo)
-        AND LOWER(TRIM(tc_user.username)) = LOWER(TRIM(:username))
-      )`;
-      params.username = username;
-    }
-
     const [countRows] = await pool.execute<FoListCountRow[]>(
       `SELECT COUNT(*) AS total
        FROM (${uniqueFoSql}) AS unique_fo
@@ -248,11 +208,11 @@ export async function GET(request: Request) {
        WHERE ${filterWhereClause}
        ORDER BY 
          CASE 
-           WHEN unique_fo.status_lanjutan = 'Produk diterima Customer' OR unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil' THEN 2
+           WHEN unique_fo.status_lanjutan = 'PRODUK SUDAH DITERIMA CUSTOMER' OR unique_fo.status_lanjutan = 'PRODUK READY DIGUDANG, SELESAI DIPACKING' THEN 2
            ELSE 1
          END ASC,
          CASE 
-           WHEN unique_fo.status_lanjutan = 'Produk diterima Customer' OR unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil' THEN NULL
+           WHEN unique_fo.status_lanjutan = 'PRODUK SUDAH DITERIMA CUSTOMER' OR unique_fo.status_lanjutan = 'PRODUK READY DIGUDANG, SELESAI DIPACKING' THEN NULL
            WHEN unique_fo.deadline_date IS NULL THEN '9999-12-31'
            ELSE unique_fo.deadline_date
          END ASC,

@@ -118,5 +118,95 @@
         "D": true
       }
     }
+  },
+  {
+    "kd_user": "USR0007",
+    "updated_at": "2026-06-03T05:01:33.109Z",
+    "permissions": {
+      "Dashboard": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "Order Control": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Order Job": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "System Settings": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      }
+    }
+  },
+  {
+    "kd_user": "USR0008",
+    "updated_at": "2026-06-03T05:11:53.071Z",
+    "permissions": {
+      "Dashboard": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "Order Control": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Order Job": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "System Settings": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      }
+    }
+  },
+  {
+    "kd_user": "USR0025",
+    "updated_at": "2026-06-03T06:06:44.421Z",
+    "permissions": {
+      "Dashboard": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "Order Control": {
+        "V": false,
+        "C": false,
+        "U": false,
+        "D": false
+      },
+      "Order Job": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      },
+      "System Settings": {
+        "V": true,
+        "C": true,
+        "U": true,
+        "D": true
+      }
+    }
   }
 ]

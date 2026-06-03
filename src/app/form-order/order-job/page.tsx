@@ -442,6 +442,56 @@ export default function OrderJobPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFo, setEditFo] = useState<{ no_fo: string; customer: string; qty_order?: number } | null>(null);
 
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [modalSuccess, setModalSuccess] = useState("");
+  const [selectedPegawai, setSelectedPegawai] = useState("NN");
+
+  useEffect(() => {
+    if (!isEditModalOpen) {
+      setModalError("");
+      setModalSuccess("");
+      setSelectedPegawai("NN");
+    } else if (session?.name) {
+      const nameUpper = session.name.trim().toUpperCase();
+      const validNames = [
+        "ALDO", "BEN", "JIHAN", "FINA", "FANI", "EGY", "IVAN", "IZAMI", "IKHA", 
+        "NOVAN", "NATRIS", "NASRIL", "PUSPA", "RISKY", "REINA", "SAFA", "SAID", 
+        "SYAHNI", "YOHAND", "KARIM-PENJAHIT", "ADI-PENJAHIT", "SANDY-PENJAHIT", 
+        "ALIF-PENJAHIT", "DIDIN-PENJAHIT"
+      ];
+      if (validNames.includes(nameUpper)) {
+        setSelectedPegawai(nameUpper);
+      } else {
+        setSelectedPegawai("NN");
+      }
+    }
+  }, [isEditModalOpen, session]);
+
+  const handleUpdateJob = async () => {
+    if (!editFo?.no_fo || !session?.username) return;
+    setIsUpdating(true);
+    setModalError("");
+    setModalSuccess("");
+    try {
+      const res = await api.updateJob({
+        no_fo: editFo.no_fo,
+        username: session.username,
+        nama_pegawai: selectedPegawai,
+      });
+      setModalSuccess(res.message || "Pekerjaan berhasil diperbarui!");
+      queryClient.invalidateQueries();
+      setTimeout(() => {
+        setIsEditModalOpen(false);
+        setEditFo(null);
+      }, 1500);
+    } catch (err: any) {
+      setModalError(err.message || "Gagal memperbarui pekerjaan.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   // Queries for Edit Modal
   const editFoDetailQuery = useQuery({
     queryKey: ["edit-fo-detail", editFo?.no_fo],
@@ -526,6 +576,31 @@ export default function OrderJobPage() {
   const [foListSearch, setFoListSearch] = useState("");
   const [foListSearchBy, setFoListSearchBy] = useState<string>("no_fo");
   const [foListStatusCategory, setFoListStatusCategory] = useState<number>(1);
+
+  useEffect(() => {
+    if (session) {
+      const role = session.role?.toLowerCase();
+      if (role === "tukang-desain") {
+        setFoListStatusCategory(6);
+      } else if (role === "tukang-layout") {
+        setFoListStatusCategory(7);
+      } else if (role === "pengawas") {
+        setFoListStatusCategory(0);
+      } else if (role === "tukang-print") {
+        setFoListStatusCategory(9);
+      } else if (role === "tukang-press" || role === "tukang-pressdtf") {
+        setFoListStatusCategory(12);
+      } else if (role === "tukang-cutting") {
+        setFoListStatusCategory(14);
+      } else if (role === "tukang-qc") {
+        setFoListStatusCategory(0);
+      } else if (role === "tukang-layanics") {
+        setFoListStatusCategory(0);
+      } else {
+        setFoListStatusCategory(1);
+      }
+    }
+  }, [session]);
 
   const outstandingSummary = useQuery({
     queryKey: ["fo-outstanding-summary", usernameFilter],
@@ -934,8 +1009,11 @@ export default function OrderJobPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* Kategori Status filter dropdown - only visible for Admins */}
-            {session?.role?.toLowerCase() === "admin" && (
+            {/* Kategori Status filter dropdown */}
+            {(session?.role?.toLowerCase() === "admin" ||
+              session?.role?.toLowerCase() === "tukang-qc" ||
+              session?.role?.toLowerCase() === "pengawas" ||
+              session?.role?.toLowerCase() === "tukang-layanics") && (
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-slate-400">Status:</span>
                 <select
@@ -946,29 +1024,64 @@ export default function OrderJobPage() {
                   }}
                   className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
                 >
-                  <option value={0}>FO ALL</option>
-                  <option value={1}>FO DP - Antrian</option>
-                  <option value={2}>FO DP + Non DP Antrian</option>
-                  <option value={3}>FO Belum DP</option>
-                  <option value={4}>DP - Belum KLaim</option>
-                  <option value={5}>Belum KLaim - FinalQC</option>
-                  <option value={6}>Proses Desain</option>
-                  <option value={7}>Desain Ready</option>
-                  <option value={8}>Proses Susun Layout</option>
-                  <option value={9}>Layout Print Ready</option>
-                  <option value={10}>Proses Persiapan Bahan Kain</option>
-                  <option value={11}>Proses Printing</option>
-                  <option value={12}>Ready to Press</option>
-                  <option value={13}>Proses Press</option>
-                  <option value={14}>Kain Ready Cutting</option>
-                  <option value={15}>Proses Cutting</option>
-                  <option value={16}>Ready Jahit</option>
-                  <option value={17}>Proses Jahit</option>
-                  <option value={18}>Ready QC</option>
-                  <option value={19}>Proses QC</option>
-                  <option value={20}>Ready Packing</option>
-                  <option value={21}>Packing Selesai</option>
-                  <option value={22}>Final Cust</option>
+                  {(() => {
+                    const role = session?.role?.toLowerCase();
+                    if (role === "tukang-qc") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data (Jahit, QC, Packing)</option>
+                          <option value={16}>Ready Jahit</option>
+                          <option value={18}>Ready QC</option>
+                          <option value={20}>Ready Packing</option>
+                        </>
+                      );
+                    }
+                    if (role === "pengawas") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data (Print Ready, Cutting Ready)</option>
+                          <option value={9}>Layout Print Ready</option>
+                          <option value={14}>Kain Ready Cutting</option>
+                        </>
+                      );
+                    }
+                    if (role === "tukang-layanics") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data (Packing Selesai, Final Cust)</option>
+                          <option value={21}>Packing Selesai</option>
+                          <option value={22}>Final Cust</option>
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        <option value={0}>FO ALL</option>
+                        <option value={1}>FO DP - Antrian</option>
+                        <option value={2}>FO DP + Non DP Antrian</option>
+                        <option value={3}>FO Belum DP</option>
+                        <option value={4}>DP - Belum KLaim</option>
+                        <option value={5}>Belum KLaim - FinalQC</option>
+                        <option value={6}>Proses Desain</option>
+                        <option value={7}>Desain Ready</option>
+                        <option value={8}>Proses Susun Layout</option>
+                        <option value={9}>Layout Print Ready</option>
+                        <option value={10}>Proses Persiapan Bahan Kain</option>
+                        <option value={11}>Proses Printing</option>
+                        <option value={12}>Ready to Press</option>
+                        <option value={13}>Proses Press</option>
+                        <option value={14}>Kain Ready Cutting</option>
+                        <option value={15}>Proses Cutting</option>
+                        <option value={16}>Ready Jahit</option>
+                        <option value={17}>Proses Jahit</option>
+                        <option value={18}>Ready QC</option>
+                        <option value={19}>Proses QC</option>
+                        <option value={20}>Ready Packing</option>
+                        <option value={21}>Packing Selesai</option>
+                        <option value={22}>Final Cust</option>
+                      </>
+                    );
+                  })()}
                 </select>
               </div>
             )}
@@ -2476,42 +2589,46 @@ export default function OrderJobPage() {
                               const hasSetelan = detailItems.some(item => 
                                 item.produk && item.produk.toUpperCase().includes("SETELAN")
                               );
+                              const hasNonSetelan = detailItems.some(item => 
+                                !item.produk || !item.produk.toUpperCase().includes("SETELAN")
+                              );
 
-                              if (!hasSetelan) {
+                              if (hasSetelan && hasNonSetelan) {
+                                let setelanQty = 0;
+                                let nonSetelanQty = 0;
+                                detailItems.forEach(item => {
+                                  const qty = Number(item.qty) || 0;
+                                  if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
+                                    setelanQty += qty;
+                                  } else {
+                                    nonSetelanQty += qty;
+                                  }
+                                });
+
                                 return (
-                                  <span className="mt-1 block text-sm font-bold text-emerald-400">
-                                    {totalQty} Pcs
-                                  </span>
+                                  <div className="space-y-1.5 mt-1">
+                                    <span className="block text-sm font-bold text-emerald-400">
+                                      {totalQty}
+                                    </span>
+                                    <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 font-medium leading-relaxed">
+                                      <div className="flex justify-between items-center gap-2">
+                                        <span>SETELAN:</span>
+                                        <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
+                                      </div>
+                                      <div className="flex justify-between items-center gap-2">
+                                        <span>Bukan SETELAN:</span>
+                                        <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 );
                               }
 
-                              let setelanQty = 0;
-                              let nonSetelanQty = 0;
-                              detailItems.forEach(item => {
-                                const qty = Number(item.qty) || 0;
-                                if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
-                                  setelanQty += qty;
-                                } else {
-                                  nonSetelanQty += qty;
-                                }
-                              });
-
+                              const unit = hasSetelan ? "Stel" : "Pcs";
                               return (
-                                <div className="space-y-1.5 mt-1">
-                                  <span className="block text-sm font-bold text-emerald-400">
-                                    {totalQty}
-                                  </span>
-                                  <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 font-medium leading-relaxed">
-                                    <div className="flex justify-between items-center gap-2">
-                                      <span>SETELAN:</span>
-                                      <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
-                                    </div>
-                                    <div className="flex justify-between items-center gap-2">
-                                      <span>Bukan SETELAN:</span>
-                                      <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
-                                    </div>
-                                  </div>
-                                </div>
+                                <span className="mt-1 block text-sm font-bold text-emerald-400">
+                                  {totalQty} {unit}
+                                </span>
                               );
                             })()
                           )}
@@ -3289,7 +3406,7 @@ export default function OrderJobPage() {
                                   <th className="px-4 py-3 font-semibold">Model</th>
                                   <th className="px-4 py-3 font-semibold">Bahan</th>
                                   <th className="px-4 py-3 font-semibold">Size</th>
-                                  <th className="px-4 py-3 text-right font-semibold w-24">Qty (Pcs)</th>
+                                  <th className="px-4 py-3 text-right font-semibold w-24">Qty</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-800/55 text-xs text-slate-300">
@@ -3334,7 +3451,7 @@ export default function OrderJobPage() {
                                         )}
                                       </td>
                                       <td className="px-4 py-2.5 text-right font-bold text-emerald-400 tabular-nums">
-                                        {item.qty}
+                                        {item.qty} {item.produk && item.produk.toUpperCase().includes("SETELAN") ? "Stel" : "Pcs"}
                                       </td>
                                     </tr>
                                   ))
@@ -3369,7 +3486,9 @@ export default function OrderJobPage() {
                                     </div>
                                     <div className="text-right flex-shrink-0">
                                       <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Qty</span>
-                                      <span className="block text-xs font-bold text-emerald-400 mt-0.5">{item.qty} Pcs</span>
+                                      <span className="block text-xs font-bold text-emerald-400 mt-0.5">
+                                        {item.qty} {item.produk && item.produk.toUpperCase().includes("SETELAN") ? "Stel" : "Pcs"}
+                                      </span>
                                     </div>
                                   </div>
                                   <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/40">
@@ -3686,7 +3805,7 @@ export default function OrderJobPage() {
                       )}
                     </div>
                   );
-                })()
+                })() // Force recompilation
               ) : null}
             </div>
           </section>
@@ -3695,9 +3814,100 @@ export default function OrderJobPage() {
 
       {/* Update Order Job Modal */}
       {isEditModalOpen && editFo ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <section className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900/90 shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col max-h-[90vh]">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
+        (() => {
+          const nextJobVal = (() => {
+            if (editFoDetailQuery.isLoading) return "Loading...";
+            if (!editFoDetailQuery.data) return "-";
+            
+            const foData = editFoDetailQuery.data;
+            const isNull = (val: any) => val === null || val === undefined || val === "";
+            const userRole = (session?.role || "").trim().toLowerCase();
+
+            if (userRole === "tukang-pressdtf" && foData.jenis_order === "JERSEY") {
+              return "-";
+            }
+            if (userRole === "pengawas" && foData.jenis_order === "DTF ONLY") {
+              return "-";
+            }
+
+            if (userRole === "tukang-desain") {
+              if (isNull(foData.Desain_Ready)) return "Desain Ready";
+            }
+            if (userRole === "tukang-layout") {
+              if (isNull(foData.Start_Layout) && !isNull(foData.Desain_Ready)) {
+                return "Start Layout";
+              }
+              if (isNull(foData.Layout_Ready) && !isNull(foData.Start_Layout)) {
+                return "Layout Ready";
+              }
+            }
+            if (userRole === "pengawas" || userRole === "tukang-print") {
+              if (isNull(foData.Ambil_Kain) && !isNull(foData.Layout_Ready) && userRole === "pengawas") {
+                return "Ambil Kain";
+              }
+              if (isNull(foData.Start_Print) && !isNull(foData.Layout_Ready) && !isNull(foData.Ambil_Kain) && userRole === "tukang-print" && foData.jenis_order !== "DTF ONLY") {
+                return "Start PrintOut";
+              }
+              if (isNull(foData.Start_Print) && !isNull(foData.Layout_Ready) && userRole === "tukang-print" && foData.jenis_order === "DTF ONLY") {
+                return "Start PrintOut";
+              }
+              if (isNull(foData.Kain_ReadyPress) && !isNull(foData.Ambil_Kain) && userRole === "pengawas") {
+                return "Bahan Kain/Kaos DTF Ready";
+              }
+              if (isNull(foData.Print_ReadyPress) && !isNull(foData.Start_Print) && userRole === "tukang-print" && foData.jenis_order !== "DTF ONLY") {
+                return "PrintOut Ready";
+              }
+              if (isNull(foData.Print_ReadyPress) && !isNull(foData.Start_Print) && userRole === "tukang-print" && foData.jenis_order === "DTF ONLY") {
+                return "Printout DTF Selesai";
+              }
+            }
+            if (userRole === "tukang-press" || userRole === "tukang-pressdtf") {
+              if (isNull(foData.Start_Press) && !isNull(foData.Kain_ReadyPress) && !isNull(foData.Print_ReadyPress)) {
+                return "Start Press";
+              }
+              if (isNull(foData.Press_ReadyCut) && !isNull(foData.Start_Press)) {
+                if (userRole === "tukang-press") return "Kain Ready Cutting";
+                return "Kaos/Jersey Siap QC";
+              }
+            }
+            if (userRole === "tukang-cutting") {
+              if (isNull(foData.Start_Cut) && !isNull(foData.Press_ReadyCut)) {
+                return "Start Cutting";
+              }
+              if (isNull(foData.Cut_ReadyJahit) && !isNull(foData.Start_Cut)) {
+                return "Kain Ready Jahit";
+              }
+            }
+            if (userRole === "tukang-qc") {
+              if (isNull(foData.Start_Jahit) && !isNull(foData.Cut_ReadyJahit)) {
+                return "Start Jahit";
+              }
+              if (isNull(foData.Jahit_ReadyQC) && !isNull(foData.Start_Jahit)) {
+                return "Produk Ready QC";
+              }
+              if (isNull(foData.Start_QC) && !isNull(foData.Jahit_ReadyQC)) {
+                return "Start QC";
+              }
+              if (isNull(foData.FinalQC_Packiing) && !isNull(foData.Start_QC)) {
+                return "Siap Packing";
+              }
+              if (isNull(foData.QC_ReadyGudang) && !isNull(foData.FinalQC_Packiing)) {
+                return "Selesai Packing, Siap diAmbil";
+              }
+            }
+            if (userRole === "tukang-layanics") {
+              if (isNull(foData.Final_Cust) && !isNull(foData.QC_ReadyGudang)) {
+                return "Produk diterima Customer";
+              }
+            }
+
+            return "-";
+          })();
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+              <section className="w-full max-w-lg rounded-xl border border-slate-800 bg-slate-900/90 shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col max-h-[90vh]">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
             
             <header className="flex items-start justify-between gap-4 p-6 pb-4 border-b border-slate-800 flex-shrink-0">
               <div>
@@ -3722,6 +3932,20 @@ export default function OrderJobPage() {
             </header>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
+              {modalError ? (
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-red-900/30 bg-red-950/20 text-xs text-red-200">
+                  <ShieldAlert className="size-4 text-red-400 shrink-0" />
+                  <span>{modalError}</span>
+                </div>
+              ) : null}
+
+              {modalSuccess ? (
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-emerald-900/30 bg-emerald-950/20 text-xs text-emerald-200">
+                  <Check className="size-4 text-emerald-400 shrink-0" />
+                  <span>{modalSuccess}</span>
+                </div>
+              ) : null}
+
               <div className="space-y-4">
                 {/* No FO */}
                 <div>
@@ -3762,8 +3986,25 @@ export default function OrderJobPage() {
                       const hasSetelan = detailItems.some(item => 
                         item.produk && item.produk.toUpperCase().includes("SETELAN")
                       );
+                      const hasNonSetelan = detailItems.some(item => 
+                        !item.produk || !item.produk.toUpperCase().includes("SETELAN")
+                      );
 
-                      if (!hasSetelan) {
+                      if (hasSetelan && !hasNonSetelan) {
+                        return (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={`${totalQty} Stel`}
+                              readOnly
+                              className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed font-semibold"
+                            />
+                            <p className="text-[11px] text-slate-400 italic">
+                              * Semua produk memiliki item SETELAN, total qty otomatis menggunakan satuan Stel.
+                            </p>
+                          </div>
+                        );
+                      } else if (!hasSetelan) {
                         return (
                           <div className="space-y-2">
                             <input
@@ -3777,45 +4018,56 @@ export default function OrderJobPage() {
                             </p>
                           </div>
                         );
-                      }
+                      } else {
+                        let setelanQty = 0;
+                        let nonSetelanQty = 0;
+                        detailItems.forEach(item => {
+                          const qty = Number(item.qty) || 0;
+                          if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
+                            setelanQty += qty;
+                          } else {
+                            nonSetelanQty += qty;
+                          }
+                        });
 
-                      let setelanQty = 0;
-                      let nonSetelanQty = 0;
-                      detailItems.forEach(item => {
-                        const qty = Number(item.qty) || 0;
-                        if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
-                          setelanQty += qty;
-                        } else {
-                          nonSetelanQty += qty;
-                        }
-                      });
-
-                      return (
-                        <div className="space-y-3">
-                          <input
-                            type="text"
-                            value={`${totalQty}`}
-                            readOnly
-                            className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed font-bold"
-                          />
-                          
-                          <div className="rounded-lg bg-slate-950 p-4 border border-slate-800/80 space-y-2">
-                            <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                              Breakdown Detail Qty:
-                            </span>
-                            <div className="flex justify-between items-center text-xs border-b border-slate-850 pb-2">
-                              <span className="text-slate-400">Total Qty (SETELAN):</span>
-                              <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
-                            </div>
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400">Total Qty (Bukan SETELAN):</span>
-                              <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
+                        return (
+                          <div className="space-y-3">
+                            <input
+                              type="text"
+                              value={`${totalQty}`}
+                              readOnly
+                              className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed font-bold"
+                            />
+                            
+                            <div className="rounded-lg bg-slate-950 p-4 border border-slate-800/80 space-y-2">
+                              <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                Breakdown Detail Qty:
+                              </span>
+                              <div className="flex justify-between items-center text-xs border-b border-slate-850 pb-2">
+                                <span className="text-slate-400">Total Qty (SETELAN):</span>
+                                <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
+                              </div>
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="text-slate-400">Total Qty (Bukan SETELAN):</span>
+                                <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
+                        );
+                      }
                     })()
                   )}
+                </div>
+
+                {/* Jenis Order */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Jenis Order</label>
+                  <input
+                    type="text"
+                    value={editFoDetailQuery.isLoading ? "Loading..." : (editFoDetailQuery.data?.jenis_order || "-")}
+                    readOnly
+                    className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-500 outline-none cursor-not-allowed font-semibold text-slate-300"
+                  />
                 </div>
 
                 {/* Previous Job */}
@@ -3850,69 +4102,73 @@ export default function OrderJobPage() {
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Next Job</label>
                   <input
                     type="text"
-                    value={(() => {
-                      if (editFoDetailQuery.isLoading) return "Loading...";
-                      
-                      const prevJobRaw = editFoDetailQuery.data?.status_lanjutan || "Desain Belum Tersedia";
-                      const prevJob = prevJobRaw.trim().toUpperCase();
-                      const userRole = (session?.role || "").trim().toLowerCase();
-
-                      if (prevJob === "DESAIN BELUM TERSEDIA" || prevJob === "-") {
-                        return "Desain Ready";
-                      }
-                      if (prevJob === "DESAIN READY") {
-                        return "Start Layout";
-                      }
-                      if (prevJob === "START LAYOUT") {
-                        return "Layout Ready";
-                      }
-                      if (prevJob === "LAYOUT READY") {
-                        return "Persiapan Bahan Kain/Kaos for DTF";
-                      }
-                      if (prevJob === "PERSIAPAN BAHAN KAIN/KAOS FOR DTF") {
-                        if (userRole === "tukang-print") {
-                          return "Start PrintOut";
-                        }
-                        return "Bahan Kain/Kaos DTF Ready"; // Untuk role Pengawas dan fallback
-                      }
-                      if (prevJob === "START PRINTOUT") {
-                        return "PrintOut Ready";
-                      }
-
-                      /*
-                       * TODO: Sisa alur pengerjaan berikutnya:
-                       * - Start Press
-                       * - Kaos/Jersey Siap QC
-                       * - Start QC
-                       * - Siap Packing
-                       * - Selesai Packing
-                       * - Siap Diambil
-                       * - Produk diterima Customer
-                       */
-                      return "-";
-                    })()}
+                    value={nextJobVal}
                     readOnly
                     className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-emerald-400 outline-none cursor-not-allowed font-bold"
                   />
                 </div>
 
+                {/* Nama Pegawai */}
+                {nextJobVal !== "-" && !editFoDetailQuery.isLoading ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nama Pegawai</label>
+                    <select
+                      value={selectedPegawai}
+                      onChange={(e) => setSelectedPegawai(e.target.value)}
+                      className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                      disabled={isUpdating}
+                    >
+                      {[
+                        "ALDO", "BEN", "JIHAN", "FINA", "FANI", "EGY", "IVAN", "IZAMI", "IKHA", 
+                        "NOVAN", "NATRIS", "NASRIL", "PUSPA", "RISKY", "REINA", "SAFA", "SAID", 
+                        "SYAHNI", "YOHAND", "KARIM-PENJAHIT", "ADI-PENJAHIT", "SANDY-PENJAHIT", 
+                        "ALIF-PENJAHIT", "DIDIN-PENJAHIT", "NN"
+                      ].map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+
                 
               </div>
             </div>
 
-            <footer className="p-6 pt-4 border-t border-slate-800 flex justify-end flex-shrink-0">
+            <footer className="p-6 pt-4 border-t border-slate-800 flex justify-end gap-3 flex-shrink-0">
               <button
                 className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition"
                 onClick={() => {
                   setIsEditModalOpen(false);
                   setEditFo(null);
                 }}
+                disabled={isUpdating}
               >
                 Tutup
               </button>
+
+              {nextJobVal !== "-" && !editFoDetailQuery.isLoading ? (
+                <button
+                  className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 disabled:bg-amber-800/50 disabled:text-slate-400 rounded-lg transition flex items-center gap-2"
+                  onClick={handleUpdateJob}
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white"></div>
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <span>Update Job</span>
+                  )}
+                </button>
+              ) : null}
             </footer>
           </section>
         </div>
+          );
+        })()
       ) : null}
     </>
   );

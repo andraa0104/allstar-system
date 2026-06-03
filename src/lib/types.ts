@@ -128,6 +128,7 @@ export type FoDetailData = {
   Final_Cust: string | null;
   status_lanjutan?: string | null;
   datetime_lanjutan?: string | null;
+  jenis_order?: string | null;
 };
 
 export type FoDetailItemRow = {

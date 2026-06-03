@@ -4,8 +4,8 @@ import { emptyResponse, errorResponse, jsonResponse } from "@/lib/response";
 
 export const runtime = "nodejs";
 
-const completedStatus = "Produk diterima Customer";
-const packingReadyStatus = "Selesai Packing, Siap diAmbil";
+const completedStatus = "PRODUK SUDAH DITERIMA CUSTOMER";
+const packingReadyStatus = "PRODUK READY DIGUDANG, SELESAI DIPACKING";
 
 type OutstandingCountRow = RowDataPacket & {
   total: number;
@@ -40,19 +40,30 @@ export async function GET(request: Request) {
         TRIM(k.no_fo) AS no_fo,
         k.order_date AS doc_date,
         k.customer AS customer,
-        c.status_lanjutan AS status_lanjutan,
-        c.username AS username
+        k.ket_status AS status_lanjutan,
+        k.uang_muka AS uang_muka,
+        k.sisa_tagihan AS sisa_tagihan,
+        k.totalrp AS totalrp,
+        k.jurnal AS jurnal,
+        k.FinalQC_Packiing AS FinalQC_Packiing,
+        k.Desain_Ready AS Desain_Ready,
+        k.Start_Layout AS Start_Layout,
+        k.Layout_ReadyPrint AS Layout_ReadyPrint,
+        k.Start_Print AS Start_Print,
+        k.Kain_ReadyPress AS Kain_ReadyPress,
+        k.Ambil_Kain AS Ambil_Kain,
+        k.Print_ReadyPress AS Print_ReadyPress,
+        k.Start_Press AS Start_Press,
+        k.Press_ReadyCut AS Press_ReadyCut,
+        k.Start_Cut AS Start_Cut,
+        k.Cut_ReadyJahit AS Cut_ReadyJahit,
+        k.Start_Jahit AS Start_Jahit,
+        k.Jahit_ReadyQC AS Jahit_ReadyQC,
+        k.Start_QC AS Start_QC,
+        k.QC_ReadyGudang AS QC_ReadyGudang,
+        k.Final_Cust AS Final_Cust,
+        NULL AS username
       FROM tb_kdfo k
-      LEFT JOIN (
-        SELECT c1.*
-        FROM tb_control c1
-        INNER JOIN (
-          SELECT MAX(id) AS max_id
-          FROM tb_control
-          WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
-          GROUP BY TRIM(no_fo)
-        ) c2 ON c1.id = c2.max_id
-      ) c ON TRIM(k.no_fo) = TRIM(c.no_fo)
       WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
@@ -73,26 +84,32 @@ export async function GET(request: Request) {
       }
     }
 
-    if (!username || userRole !== "tukang-desain") {
-      searchWhereClause += `
-        AND unique_fo.status_lanjutan IS NOT NULL
-        AND TRIM(unique_fo.status_lanjutan) <> ''
-        AND TRIM(unique_fo.status_lanjutan) <> '-'
-        AND unique_fo.status_lanjutan <> :completedStatus
-        AND unique_fo.status_lanjutan <> :packingReadyStatus
-      `;
-    }
-
-    const roleStatusMap: Record<string, string[]> = {
-      "tukang-desain": ["", "-", "Proses Desain"],
-      "tukang-layout": ["Desain Ready", "Start Layout"],
-      "pengawas": ["Layout Ready", "Persiapan Bahan Kain/Kaos for DTF"],
-      "tukang-print": ["Bahan Kain/Kaos DTF Ready", "Start PrintOut", "Start Print"],
-      "tukang-press": ["PrintOut Ready", "Start Press"],
-      "tukang-pressdtf": ["PrintOut Ready", "Start Press"],
-      "tukang-cutting": ["Kain Ready Cutting", "Start Cutting", "Start Cut"],
-      "tukang-qc": ["Kain Ready Jahit", "Kaos/Jersy Siap QC", "Start QC", "Siap Packing", "Start Jahit", "Produk Ready QC"],
-      "tukang-layanics": ["Selesai Packing, Siap diAmbil"]
+    const getCategoryClause = (cat: number): string => {
+      switch (cat) {
+        case 1: return "unique_fo.uang_muka > 0 AND unique_fo.FinalQC_Packiing IS NULL";
+        case 2: return "unique_fo.FinalQC_Packiing IS NULL";
+        case 3: return "unique_fo.uang_muka = 0 AND unique_fo.sisa_tagihan = unique_fo.totalrp";
+        case 4: return "unique_fo.jurnal IS NULL AND unique_fo.uang_muka > 0";
+        case 5: return "unique_fo.jurnal IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
+        case 6: return "unique_fo.uang_muka IS NOT NULL AND unique_fo.Desain_Ready IS NULL";
+        case 7: return "unique_fo.Start_Layout IS NULL AND unique_fo.Desain_Ready IS NOT NULL";
+        case 8: return "unique_fo.Start_Layout IS NOT NULL AND unique_fo.Layout_ReadyPrint IS NULL";
+        case 9: return "unique_fo.Layout_ReadyPrint IS NOT NULL AND unique_fo.Start_Print IS NULL";
+        case 10: return "unique_fo.Kain_ReadyPress IS NULL AND unique_fo.Ambil_Kain IS NOT NULL";
+        case 11: return "(unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NULL) OR (unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NULL)";
+        case 12: return "unique_fo.Start_Press IS NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NOT NULL";
+        case 13: return "unique_fo.Start_Press IS NOT NULL AND unique_fo.Press_ReadyCut IS NULL";
+        case 14: return "unique_fo.Start_Cut IS NULL AND unique_fo.Press_ReadyCut IS NOT NULL";
+        case 15: return "unique_fo.Start_Cut IS NOT NULL AND unique_fo.Cut_ReadyJahit IS NULL";
+        case 16: return "unique_fo.Start_Jahit IS NULL AND unique_fo.Cut_ReadyJahit IS NOT NULL";
+        case 17: return "unique_fo.Start_Jahit IS NOT NULL AND unique_fo.Jahit_ReadyQC IS NULL";
+        case 18: return "unique_fo.Start_QC IS NULL AND unique_fo.Jahit_ReadyQC IS NOT NULL";
+        case 19: return "unique_fo.Start_QC IS NOT NULL AND unique_fo.FinalQC_Packiing IS NULL";
+        case 20: return "unique_fo.QC_ReadyGudang IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
+        case 21: return "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NULL";
+        case 22: return "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NOT NULL";
+        default: return "1=1";
+      }
     };
 
     const params: any = {
@@ -102,34 +119,37 @@ export async function GET(request: Request) {
       searchPattern: `%${search}%`,
     };
 
-    if (username && userRole && roleStatusMap[userRole]) {
-      const allowedStatuses = roleStatusMap[userRole];
-      const hasNullOrEmpty = allowedStatuses.some(s => s === "" || s === "-");
-      const nonNullStatuses = allowedStatuses.filter(s => s !== "" && s !== "-");
-      
-      let condition = "";
-      if (nonNullStatuses.length > 0) {
-        const statusCondition = nonNullStatuses.map((_, i) => `:status_${i}`).join(", ");
-        condition = `unique_fo.status_lanjutan IN (${statusCondition})`;
-        nonNullStatuses.forEach((val, i) => {
-          params[`status_${i}`] = val;
-        });
+    if (username && userRole) {
+      let activeClause = "1=1";
+      if (userRole === "tukang-desain") {
+        activeClause = getCategoryClause(6);
+      } else if (userRole === "tukang-layout") {
+        activeClause = getCategoryClause(7);
+      } else if (userRole === "pengawas") {
+        activeClause = `(${getCategoryClause(9)} OR ${getCategoryClause(14)})`;
+      } else if (userRole === "tukang-print") {
+        activeClause = getCategoryClause(9);
+      } else if (userRole === "tukang-press") {
+        activeClause = `(${getCategoryClause(12)} AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+      } else if (userRole === "tukang-pressdtf") {
+        activeClause = `(${getCategoryClause(12)} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+      } else if (userRole === "tukang-cutting") {
+        activeClause = getCategoryClause(14);
+      } else if (userRole === "tukang-qc") {
+        activeClause = `(${getCategoryClause(16)} OR ${getCategoryClause(18)} OR ${getCategoryClause(20)})`;
+      } else if (userRole === "tukang-layanics") {
+        activeClause = `(${getCategoryClause(21)} OR ${getCategoryClause(22)})`;
       }
-      
-      if (hasNullOrEmpty) {
-        const nullCond = `unique_fo.status_lanjutan IS NULL OR TRIM(unique_fo.status_lanjutan) = '' OR TRIM(unique_fo.status_lanjutan) = '-'`;
-        condition = condition ? `(${condition} OR ${nullCond})` : nullCond;
-      }
-      
-      searchWhereClause += ` AND (${condition})`;
+      searchWhereClause += ` AND (${activeClause})`;
       params.username = username;
-    } else if (username) {
-      searchWhereClause += ` AND unique_fo.status_lanjutan LIKE 'Start%' AND EXISTS (
-        SELECT 1 FROM tb_control tc_user
-        WHERE TRIM(tc_user.no_fo) = TRIM(unique_fo.no_fo)
-        AND LOWER(TRIM(tc_user.username)) = LOWER(TRIM(:username))
-      )`;
-      params.username = username;
+    } else {
+      searchWhereClause += `
+        AND unique_fo.status_lanjutan IS NOT NULL
+        AND TRIM(unique_fo.status_lanjutan) <> ''
+        AND TRIM(unique_fo.status_lanjutan) <> '-'
+        AND unique_fo.status_lanjutan <> :completedStatus
+        AND unique_fo.status_lanjutan <> :packingReadyStatus
+      `;
     }
 
     const [countRows] = await pool.execute<OutstandingCountRow[]>(

@@ -35,33 +35,49 @@ export async function GET(request: Request) {
     const page = Math.max(requestedPage || 1, 1);
     const offset = limit ? (page - 1) * limit : 0;
 
+    let userRole = "";
+    if (username) {
+      const [userRows] = await pool.execute<any[]>(
+        "SELECT tingkat FROM tb_pengguna WHERE LOWER(TRIM(pengguna)) = LOWER(TRIM(?)) LIMIT 1",
+        [username]
+      );
+      if (userRows && userRows.length > 0) {
+        userRole = userRows[0].tingkat.toLowerCase().trim();
+      }
+    }
+
     const uniqueFoSql = `
       SELECT
         TRIM(k.no_fo) AS no_fo,
         k.order_date AS doc_date,
         k.customer AS customer,
-        c.status_lanjutan AS status_lanjutan,
+        k.ket_status AS status_lanjutan,
         k.QC_ReadyGudang AS QC_ReadyGudang,
         k.Final_Cust AS Final_Cust,
-        c.username AS username
+        k.FinalQC_Packiing AS FinalQC_Packiing,
+        k.Desain_Ready AS Desain_Ready,
+        k.Start_Layout AS Start_Layout,
+        k.Layout_ReadyPrint AS Layout_ReadyPrint,
+        k.Start_Print AS Start_Print,
+        k.Kain_ReadyPress AS Kain_ReadyPress,
+        k.Ambil_Kain AS Ambil_Kain,
+        k.Print_ReadyPress AS Print_ReadyPress,
+        k.Start_Press AS Start_Press,
+        k.Press_ReadyCut AS Press_ReadyCut,
+        k.Start_Cut AS Start_Cut,
+        k.Cut_ReadyJahit AS Cut_ReadyJahit,
+        k.Start_Jahit AS Start_Jahit,
+        k.Jahit_ReadyQC AS Jahit_ReadyQC,
+        k.Start_QC AS Start_QC,
+        k.QC_ReadyGudang AS QC_ReadyGudang_Check,
+        k.Final_Cust AS Final_Cust_Check,
+        NULL AS username
       FROM tb_kdfo k
-      LEFT JOIN (
-        SELECT c1.*
-        FROM tb_control c1
-        INNER JOIN (
-          SELECT MAX(id) AS max_id
-          FROM tb_control
-          WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
-          GROUP BY TRIM(no_fo)
-        ) c2 ON c1.id = c2.max_id
-      ) c ON TRIM(k.no_fo) = TRIM(c.no_fo)
       WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
-    // Completion date is either next step's datetime_awal (if user is provided) or overall FO completion dates
-    const completedDateExpr = username
-      ? "ucj.completed_date"
-      : "COALESCE(unique_fo.Final_Cust, unique_fo.QC_ReadyGudang)";
+    // Completion date is overall FO completion dates or fallback to doc_date
+    const completedDateExpr = "COALESCE(unique_fo.Final_Cust, unique_fo.QC_ReadyGudang, unique_fo.doc_date)";
 
     let dateClause = "1=1";
     const params: any = {
@@ -86,84 +102,55 @@ export async function GET(request: Request) {
       params.endDate = endDate;
     }
 
-    let querySql = "";
-    let countSql = "";
-
-    if (username) {
-      const ucjJoinSql = `
-        INNER JOIN (
-          SELECT 
-            um.no_fo,
-            COALESCE(MIN(tc_next.datetime_awal), um.max_user_datetime) AS completed_date
-          FROM (
-            SELECT 
-              TRIM(no_fo) AS no_fo,
-              MAX(id) AS max_user_id,
-              MAX(datetime_lanjutan) AS max_user_datetime
-            FROM tb_control
-            WHERE LOWER(TRIM(username)) = LOWER(TRIM(:username))
-            GROUP BY TRIM(no_fo)
-          ) um
-          LEFT JOIN tb_control tc_next ON TRIM(tc_next.no_fo) = um.no_fo AND tc_next.id > um.max_user_id
-          GROUP BY um.no_fo, um.max_user_datetime
-        ) ucj ON TRIM(unique_fo.no_fo) = ucj.no_fo
-      `;
-
-      const searchWhereClause = `(
-        :search = ''
-        OR unique_fo.no_fo LIKE :searchPattern
-        OR unique_fo.customer LIKE :searchPattern
-      )
-      AND NOT (
-        LOWER(TRIM(unique_fo.username)) = LOWER(TRIM(:username))
-        AND unique_fo.status_lanjutan LIKE 'Start%'
-      )
-      AND ucj.completed_date IS NOT NULL
-      AND (${dateClause})`;
-
-      countSql = `SELECT COUNT(*) AS total
-                  FROM (${uniqueFoSql}) AS unique_fo
-                  ${ucjJoinSql}
-                  WHERE ${searchWhereClause}`;
-
-      const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
-      querySql = `SELECT unique_fo.no_fo, unique_fo.doc_date, unique_fo.customer, 
-                         unique_fo.status_lanjutan, unique_fo.status_lanjutan AS status,
-                         unique_fo.QC_ReadyGudang, unique_fo.Final_Cust
-                  FROM (${uniqueFoSql}) AS unique_fo
-                  ${ucjJoinSql}
-                  WHERE ${searchWhereClause}
-                  ORDER BY unique_fo.no_fo DESC, unique_fo.doc_date DESC
-                  ${paginationSql}`;
+    let statusWhereClause = "1=1";
+    if (username && userRole) {
+      if (userRole === "tukang-desain") {
+        statusWhereClause = "unique_fo.status_lanjutan = 'FINAL DESAIN'";
+      } else if (userRole === "tukang-layout") {
+        statusWhereClause = "unique_fo.status_lanjutan = 'LAYOUT DESAIN SUDAH SIAP UTK DI PRINTOUT'";
+      } else if (userRole === "pengawas") {
+        statusWhereClause = "unique_fo.status_lanjutan IN ('BAHAN KAIN/KAOS/JERSEY READY, PRINTOUT BELUM PROSES', 'BAHAN KAIN/KAOS/JERSEY READY, PRINTOUT LAGI DIPROSES', 'BAHAN KAIN/KAOS/JERSEY DAN PRINTOUT READY, SIAP UTK DIPRESS SUBLIME')";
+      } else if (userRole === "tukang-print") {
+        statusWhereClause = "unique_fo.status_lanjutan IN ('PRINTOUT READY, LAGI PERSIAPAN BAHAN KAIN/KAOS/JERSEY', 'BAHAN KAIN/KAOS/JERSEY DAN PRINTOUT READY, SIAP UTK DIPRESS')";
+      } else if (userRole === "tukang-press") {
+        statusWhereClause = "unique_fo.status_lanjutan = 'KAIN SUBLIME READY CUTTING' AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%')";
+      } else if (userRole === "tukang-pressdtf") {
+        statusWhereClause = "unique_fo.status_lanjutan = 'PRESS DTF SELESAI, PERIKSA KWALITASNYA' AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%')";
+      } else if (userRole === "tukang-cutting") {
+        statusWhereClause = "unique_fo.status_lanjutan = 'READY UNTUK DIJAHIT'";
+      } else if (userRole === "tukang-qc") {
+        statusWhereClause = "unique_fo.status_lanjutan = 'PRODUK READY DIGUDANG, SELESAI DIPACKING'";
+      } else if (userRole === "tukang-layanics") {
+        statusWhereClause = "unique_fo.status_lanjutan = 'PRODUK SUDAH DITERIMA CUSTOMER'";
+      }
     } else {
-      const searchWhereClause = `(
-        :search = ''
-        OR unique_fo.no_fo LIKE :searchPattern
-        OR unique_fo.customer LIKE :searchPattern
-      )
-      AND (
-        unique_fo.status_lanjutan = 'Selesai Packing, Siap diAmbil'
-        OR unique_fo.status_lanjutan = 'Produk diterima Customer'
-      )
-      AND (${dateClause})`;
-
-      countSql = `SELECT COUNT(*) AS total
-                  FROM (${uniqueFoSql}) AS unique_fo
-                  WHERE ${searchWhereClause}`;
-
-      const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
-      querySql = `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status,
-                         QC_ReadyGudang, Final_Cust
-                  FROM (${uniqueFoSql}) AS unique_fo
-                  WHERE ${searchWhereClause}
-                  ORDER BY no_fo DESC, doc_date DESC
-                  ${paginationSql}`;
+      statusWhereClause = "unique_fo.status_lanjutan IN ('PRODUK READY DIGUDANG, SELESAI DIPACKING', 'PRODUK SUDAH DITERIMA CUSTOMER')";
     }
+
+    const searchWhereClause = `(
+      :search = ''
+      OR unique_fo.no_fo LIKE :searchPattern
+      OR unique_fo.customer LIKE :searchPattern
+    )
+    AND (${statusWhereClause})
+    AND (${dateClause})`;
+
+    const countSql = `SELECT COUNT(*) AS total
+                      FROM (${uniqueFoSql}) AS unique_fo
+                      WHERE ${searchWhereClause}`;
+
+    const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
+    const querySql = `SELECT unique_fo.no_fo, unique_fo.doc_date, unique_fo.customer, 
+                             unique_fo.status_lanjutan, unique_fo.status_lanjutan AS status,
+                             unique_fo.QC_ReadyGudang, unique_fo.Final_Cust
+                      FROM (${uniqueFoSql}) AS unique_fo
+                      WHERE ${searchWhereClause}
+                      ORDER BY unique_fo.no_fo DESC, unique_fo.doc_date DESC
+                      ${paginationSql}`;
 
     const [countRows] = await pool.execute<CompleteCountRow[]>(countSql, params);
     const total = Number(countRows[0]?.total ?? 0);
 
-    const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const [items] = await pool.execute<CompleteRow[]>(querySql, params);
 
     return jsonResponse(

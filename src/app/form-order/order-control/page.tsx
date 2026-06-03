@@ -2332,42 +2332,46 @@ export default function ProductionPipelinePage() {
                               const hasSetelan = detailItems.some(item => 
                                 item.produk && item.produk.toUpperCase().includes("SETELAN")
                               );
+                              const hasNonSetelan = detailItems.some(item => 
+                                !item.produk || !item.produk.toUpperCase().includes("SETELAN")
+                              );
 
-                              if (!hasSetelan) {
+                              if (hasSetelan && hasNonSetelan) {
+                                let setelanQty = 0;
+                                let nonSetelanQty = 0;
+                                detailItems.forEach(item => {
+                                  const qty = Number(item.qty) || 0;
+                                  if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
+                                    setelanQty += qty;
+                                  } else {
+                                    nonSetelanQty += qty;
+                                  }
+                                });
+
                                 return (
-                                  <span className="mt-1 block text-sm font-bold text-emerald-400">
-                                    {totalQty} Pcs
-                                  </span>
+                                  <div className="space-y-1.5 mt-1">
+                                    <span className="block text-sm font-bold text-emerald-400">
+                                      {totalQty}
+                                    </span>
+                                    <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 font-medium leading-relaxed">
+                                      <div className="flex justify-between items-center gap-2">
+                                        <span>SETELAN:</span>
+                                        <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
+                                      </div>
+                                      <div className="flex justify-between items-center gap-2">
+                                        <span>Bukan SETELAN:</span>
+                                        <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 );
                               }
 
-                              let setelanQty = 0;
-                              let nonSetelanQty = 0;
-                              detailItems.forEach(item => {
-                                const qty = Number(item.qty) || 0;
-                                if (item.produk && item.produk.toUpperCase().includes("SETELAN")) {
-                                  setelanQty += qty;
-                                } else {
-                                  nonSetelanQty += qty;
-                                }
-                              });
-
+                              const unit = hasSetelan ? "Stel" : "Pcs";
                               return (
-                                <div className="space-y-1.5 mt-1">
-                                  <span className="block text-sm font-bold text-emerald-400">
-                                    {totalQty}
-                                  </span>
-                                  <div className="text-[10px] text-slate-400 space-y-0.5 border-t border-slate-800/80 pt-1.5 font-medium leading-relaxed">
-                                    <div className="flex justify-between items-center gap-2">
-                                      <span>SETELAN:</span>
-                                      <span className="font-bold text-amber-400 font-mono">{setelanQty} Stel</span>
-                                    </div>
-                                    <div className="flex justify-between items-center gap-2">
-                                      <span>Bukan SETELAN:</span>
-                                      <span className="font-bold text-slate-200 font-mono">{nonSetelanQty} Pcs</span>
-                                    </div>
-                                  </div>
-                                </div>
+                                <span className="mt-1 block text-sm font-bold text-emerald-400">
+                                  {totalQty} {unit}
+                                </span>
                               );
                             })()
                           )}
@@ -3145,7 +3149,7 @@ export default function ProductionPipelinePage() {
                                   <th className="px-4 py-3 font-semibold">Model</th>
                                   <th className="px-4 py-3 font-semibold">Bahan</th>
                                   <th className="px-4 py-3 font-semibold">Size</th>
-                                  <th className="px-4 py-3 text-right font-semibold w-24">Qty (Pcs)</th>
+                                  <th className="px-4 py-3 text-right font-semibold w-24">Qty</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-800/55 text-xs text-slate-300">
@@ -3190,7 +3194,7 @@ export default function ProductionPipelinePage() {
                                         )}
                                       </td>
                                       <td className="px-4 py-2.5 text-right font-bold text-emerald-400 tabular-nums">
-                                        {item.qty}
+                                        {item.qty} {item.produk && item.produk.toUpperCase().includes("SETELAN") ? "Stel" : "Pcs"}
                                       </td>
                                     </tr>
                                   ))
@@ -3225,7 +3229,9 @@ export default function ProductionPipelinePage() {
                                     </div>
                                     <div className="text-right flex-shrink-0">
                                       <span className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">Qty</span>
-                                      <span className="block text-xs font-bold text-emerald-400 mt-0.5">{item.qty} Pcs</span>
+                                      <span className="block text-xs font-bold text-emerald-400 mt-0.5">
+                                        {item.qty} {item.produk && item.produk.toUpperCase().includes("SETELAN") ? "Stel" : "Pcs"}
+                                      </span>
                                     </div>
                                   </div>
                                   <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800/40">
