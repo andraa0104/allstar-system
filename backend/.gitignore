@@ -21,3 +21,6 @@ yarn-error.log*
 # env files
 .env*.local
 .env
+
+# WhatsApp Gateway Sessions
+baileys_auth_info/

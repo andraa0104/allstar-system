@@ -5,10 +5,11 @@ import { ProfileSettings } from "@/components/settings/profile-settings";
 import { SecuritySettings } from "@/components/settings/security-settings";
 import { UserManagement } from "@/components/settings/user-management";
 import { PrivilegeAccess } from "@/components/settings/privilege-access";
+import { WhatsAppSettings } from "@/components/settings/whatsapp-settings";
 import { useEffect, useState } from "react";
 import { getSession } from "@/lib/session";
 import type { SessionUser } from "@/lib/types";
-import { User, KeyRound, Users, ShieldAlert } from "lucide-react";
+import { User, KeyRound, Users, ShieldAlert, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -69,6 +70,7 @@ export default function SettingsPage() {
     { id: "security", label: "Change Password", icon: KeyRound, allowed: true },
     { id: "users", label: "User Management", icon: Users, allowed: isAdmin },
     { id: "privilege", label: "Privilege Access", icon: ShieldAlert, allowed: isAdmin },
+    { id: "whatsapp", label: "WhatsApp Gateway", icon: MessageSquare, allowed: isAdmin },
   ];
 
   return (
@@ -108,6 +110,7 @@ export default function SettingsPage() {
         {activeTab === "security" && <SecuritySettings />}
         {activeTab === "users" && isAdmin && <UserManagement />}
         {activeTab === "privilege" && isAdmin && <PrivilegeAccess />}
+        {activeTab === "whatsapp" && isAdmin && <WhatsAppSettings />}
       </div>
     </div>
   );

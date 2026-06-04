@@ -18,7 +18,7 @@ const formatToMysqlDateTime = (date: Date): string => {
 export async function POST(request: Request) {
   const connection = await pool.getConnection();
   try {
-    const { no_fo, username, nama_pegawai } = await request.json();
+    const { no_fo, username, nama_pegawai, nama_penerima } = await request.json();
 
     if (!no_fo || !username) {
       return jsonResponse({ message: "Parameter 'no_fo' dan 'username' wajib diisi." }, { status: 400 }, request);
@@ -245,6 +245,10 @@ export async function POST(request: Request) {
 
     if (!cmbstatus) {
       return jsonResponse({ message: "Tidak ada status lanjutan yang dapat diproses." }, { status: 400 }, request);
+    }
+
+    if (cmbstatus === "Produk diterima Customer" && (!nama_penerima || !nama_penerima.trim())) {
+      return jsonResponse({ message: "Nama Penerima wajib diisi." }, { status: 400 }, request);
     }
 
     // Begin SQL Transaction
@@ -480,6 +484,36 @@ export async function POST(request: Request) {
     );
 
     await connection.commit();
+
+    // Trigger WhatsApp notification
+    if (cmbstatus === "Selesai Packing, Siap diAmbil" || cmbstatus === "Produk diterima Customer") {
+      const phone = fo.telp_cus;
+      const customer = fo.customer;
+      if (phone && phone !== "-" && phone.trim() !== "") {
+        let formattedPhone = String(phone).replace(/[^0-9]/g, "");
+        if (formattedPhone.startsWith("0")) {
+          formattedPhone = "62" + formattedPhone.slice(1);
+        } else if (!formattedPhone.startsWith("62")) {
+          formattedPhone = "62" + formattedPhone;
+        }
+
+        // Only send if we have a valid formatted number
+        if (formattedPhone.length >= 10) {
+          let message = "";
+          if (cmbstatus === "Selesai Packing, Siap diAmbil") {
+            message = `Hallo kak *${customer}*, barangnya sudah selesai dan siap ambil. Terima kasih telah mempercayakan orderan jersynya kepada kami. Kami tunggu kedatangannya kak☺️🙏🏻\n\nCS : ${username}\n\nALAMAT TOKO : \nAllstar Apparel\nAlamat : Jalan Pelita No.61 C Sungai Pinang Dalam (tengah tengah idm dan ghufta)\nNo. Hp/wa : 0852-5709-1894`;
+          } else {
+            message = `Terima kasih barangnya sudah diterima oleh *${nama_penerima}* dan telah berbelanja di Allstar Apparel. Kritik dan saran dipersilahkan kakak, jangan lupa follow ig @allstar_apparel_samarinda dan berikan riview digoogle maps kami kak🙏🏻\nNext bisa repeat order lagi ya kakak🤩`;
+          }
+
+          fetch("http://localhost:8011/send-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: formattedPhone, message })
+          }).catch(err => console.error("Failed to send WhatsApp message:", err));
+        }
+      }
+    }
 
     return jsonResponse({
       message: `Pekerjaan berhasil diperbarui ke status: '${ket_status}'`,

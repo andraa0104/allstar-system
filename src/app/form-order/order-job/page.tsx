@@ -446,12 +446,14 @@ export default function OrderJobPage() {
   const [modalError, setModalError] = useState("");
   const [modalSuccess, setModalSuccess] = useState("");
   const [selectedPegawai, setSelectedPegawai] = useState("NN");
+  const [namaPenerima, setNamaPenerima] = useState("");
 
   useEffect(() => {
     if (!isEditModalOpen) {
       setModalError("");
       setModalSuccess("");
       setSelectedPegawai("NN");
+      setNamaPenerima("");
     } else if (session?.name) {
       const nameUpper = session.name.trim().toUpperCase();
       const validNames = [
@@ -468,8 +470,12 @@ export default function OrderJobPage() {
     }
   }, [isEditModalOpen, session]);
 
-  const handleUpdateJob = async () => {
+  const handleUpdateJob = async (nextJobVal?: string) => {
     if (!editFo?.no_fo || !session?.username) return;
+    if (nextJobVal === "Produk diterima Customer" && !namaPenerima.trim()) {
+      setModalError("Nama Penerima wajib diisi.");
+      return;
+    }
     setIsUpdating(true);
     setModalError("");
     setModalSuccess("");
@@ -478,6 +484,7 @@ export default function OrderJobPage() {
         no_fo: editFo.no_fo,
         username: session.username,
         nama_pegawai: selectedPegawai,
+        nama_penerima: nextJobVal === "Produk diterima Customer" ? namaPenerima : undefined,
       });
       setModalSuccess(res.message || "Pekerjaan berhasil diperbarui!");
       queryClient.invalidateQueries();
@@ -4132,6 +4139,22 @@ export default function OrderJobPage() {
                   </div>
                 ) : null}
 
+                {/* Nama Penerima */}
+                {nextJobVal === "Produk diterima Customer" && !editFoDetailQuery.isLoading ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nama Penerima</label>
+                    <input
+                      type="text"
+                      value={namaPenerima}
+                      onChange={(e) => setNamaPenerima(e.target.value)}
+                      placeholder="Masukkan nama penerima barang"
+                      className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                      disabled={isUpdating}
+                      required
+                    />
+                  </div>
+                ) : null}
+
                 
               </div>
             </div>
@@ -4151,7 +4174,7 @@ export default function OrderJobPage() {
               {nextJobVal !== "-" && !editFoDetailQuery.isLoading ? (
                 <button
                   className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 disabled:bg-amber-800/50 disabled:text-slate-400 rounded-lg transition flex items-center gap-2"
-                  onClick={handleUpdateJob}
+                  onClick={() => handleUpdateJob(nextJobVal)}
                   disabled={isUpdating}
                 >
                   {isUpdating ? (

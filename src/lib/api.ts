@@ -338,7 +338,7 @@ export const api = {
     );
   },
 
-  updateJob(payload: { no_fo: string; username: string; nama_pegawai?: string }) {
+  updateJob(payload: { no_fo: string; username: string; nama_pegawai?: string; nama_penerima?: string }) {
     return apiFetch<{ message?: string; nextStatus?: string; ketStatus?: string }>("/production/update-job", {
       method: "POST",
       body: payload,
@@ -409,6 +409,10 @@ export const api = {
       method: "PUT",
       body: payload,
     });
+  },
+
+  getWhatsAppStatus() {
+    return apiFetch<{ status: string; qr: string | null; error?: string }>("/settings/whatsapp");
   },
 };
 
