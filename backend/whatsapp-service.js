@@ -30,7 +30,7 @@ const sessionDir = path.join(process.cwd(), "baileys_auth_info");
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
-  sock = makeWASocket.default({
+  sock = makeWASocket({
     auth: state,
     printQRInTerminal: true,
   });
