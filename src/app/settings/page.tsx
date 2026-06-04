@@ -39,7 +39,7 @@ export default function SettingsPage() {
     );
   }
 
-  // Check live access for "System Settings" V permission
+  // Check live access for "System Settings" or "WhatsApp Gateway" V permission
   const hasAccess = (() => {
     if (!session) return false;
     // Admins are superusers and always bypass view limitations
@@ -48,7 +48,7 @@ export default function SettingsPage() {
     if (!userPerms?.permissions) {
       return false; // Non-admins do not have settings access by default
     }
-    return !!userPerms.permissions["System Settings"]?.V;
+    return !!userPerms.permissions["System Settings"]?.V || !!userPerms.permissions["WhatsApp Gateway"]?.V;
   })();
 
   if (userPerms?.permissions && !hasAccess) {
@@ -64,13 +64,14 @@ export default function SettingsPage() {
   }
 
   const isAdmin = session.role.toLowerCase() === "admin";
+  const hasWhatsAppAccess = isAdmin || !!userPerms?.permissions?.["WhatsApp Gateway"]?.V;
 
   const tabs = [
     { id: "profile", label: "Detail Account", icon: User, allowed: true },
     { id: "security", label: "Change Password", icon: KeyRound, allowed: true },
     { id: "users", label: "User Management", icon: Users, allowed: isAdmin },
     { id: "privilege", label: "Privilege Access", icon: ShieldAlert, allowed: isAdmin },
-    { id: "whatsapp", label: "WhatsApp Gateway", icon: MessageSquare, allowed: isAdmin },
+    { id: "whatsapp", label: "WhatsApp Gateway", icon: MessageSquare, allowed: hasWhatsAppAccess },
   ];
 
   return (
@@ -110,7 +111,7 @@ export default function SettingsPage() {
         {activeTab === "security" && <SecuritySettings />}
         {activeTab === "users" && isAdmin && <UserManagement />}
         {activeTab === "privilege" && isAdmin && <PrivilegeAccess />}
-        {activeTab === "whatsapp" && isAdmin && <WhatsAppSettings />}
+        {activeTab === "whatsapp" && hasWhatsAppAccess && <WhatsAppSettings />}
       </div>
     </div>
   );

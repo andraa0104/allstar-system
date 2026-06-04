@@ -11,6 +11,7 @@ const MODULE_OPTIONS = [
   "Order Control",
   "Order Job",
   "System Settings",
+  "WhatsApp Gateway",
 ];
 
 const PERMISSION_FLAGS = [

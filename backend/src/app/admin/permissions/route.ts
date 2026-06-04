@@ -65,6 +65,7 @@ export async function GET(request: Request) {
         "Order Control": { V: false, C: false, U: false, D: false },
         "Order Job": { V: false, C: false, U: false, D: false },
         "System Settings": { V: false, C: false, U: false, D: false },
+        "WhatsApp Gateway": { V: false, C: false, U: false, D: false },
       };
       return jsonResponse({ kd_user, permissions: defaultMatrix }, {}, request);
     }
