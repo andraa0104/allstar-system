@@ -134,21 +134,21 @@ export async function GET(request: Request) {
       if (userRole === "tukang-desain") {
         activeClause = getCategoryClause(6);
       } else if (userRole === "tukang-layout") {
-        activeClause = getCategoryClause(7);
+        activeClause = `(${getCategoryClause(7)} OR ${getCategoryClause(8)})`;
       } else if (userRole === "pengawas") {
-        activeClause = `(${getCategoryClause(9)} OR ${getCategoryClause(14)})`;
+        activeClause = `(${getCategoryClause(9)} OR ${getCategoryClause(14)} OR ${getCategoryClause(10)} OR ${getCategoryClause(11)})`;
       } else if (userRole === "tukang-print") {
-        activeClause = getCategoryClause(9);
+        activeClause = `(${getCategoryClause(9)} OR ${getCategoryClause(11)})`;
       } else if (userRole === "tukang-press") {
-        activeClause = `(${getCategoryClause(12)} AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        activeClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
       } else if (userRole === "tukang-pressdtf") {
-        activeClause = `(${getCategoryClause(12)} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        activeClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
       } else if (userRole === "tukang-cutting") {
-        activeClause = getCategoryClause(14);
+        activeClause = `(${getCategoryClause(14)} OR ${getCategoryClause(15)})`;
       } else if (userRole === "tukang-qc") {
-        activeClause = `(${getCategoryClause(16)} OR ${getCategoryClause(18)} OR ${getCategoryClause(20)})`;
+        activeClause = `(${getCategoryClause(16)} OR ${getCategoryClause(17)} OR ${getCategoryClause(18)} OR ${getCategoryClause(19)} OR ${getCategoryClause(20)})`;
       } else if (userRole === "tukang-layanics") {
-        activeClause = `(${getCategoryClause(21)} OR ${getCategoryClause(22)})`;
+        activeClause = getCategoryClause(21);
       }
       searchWhereClause += ` AND (${activeClause})`;
       params.username = username;

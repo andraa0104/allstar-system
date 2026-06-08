@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         TRIM(k.no_fo) AS no_fo,
         k.order_date AS order_date,
         k.doc_date AS doc_date,
-        k.order_date AS datetime_lanjutan,
+        k.date_status AS datetime_lanjutan,
         k.customer AS customer,
         k.qty_order AS qty_order,
         k.ket_status AS status_lanjutan,
@@ -151,21 +151,21 @@ export async function GET(request: Request) {
       if (userRole === "tukang-desain") {
         statusClause = getCategoryClause(6);
       } else if (userRole === "tukang-layout") {
-        statusClause = getCategoryClause(7);
+        statusClause = `(${getCategoryClause(7)} OR ${getCategoryClause(8)})`;
       } else if (userRole === "pengawas") {
-        statusClause = `(${getCategoryClause(9)} OR ${getCategoryClause(14)})`;
+        statusClause = `(${getCategoryClause(9)} OR ${getCategoryClause(14)} OR ${getCategoryClause(10)} OR ${getCategoryClause(11)})`;
       } else if (userRole === "tukang-print") {
-        statusClause = getCategoryClause(9);
+        statusClause = `(${getCategoryClause(9)} OR ${getCategoryClause(11)})`;
       } else if (userRole === "tukang-press") {
-        statusClause = `(${getCategoryClause(12)} AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        statusClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
       } else if (userRole === "tukang-pressdtf") {
-        statusClause = `(${getCategoryClause(12)} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        statusClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
       } else if (userRole === "tukang-cutting") {
-        statusClause = getCategoryClause(14);
+        statusClause = `(${getCategoryClause(14)} OR ${getCategoryClause(15)})`;
       } else if (userRole === "tukang-qc") {
-        statusClause = `(${getCategoryClause(16)} OR ${getCategoryClause(18)} OR ${getCategoryClause(20)})`;
+        statusClause = `(${getCategoryClause(16)} OR ${getCategoryClause(17)} OR ${getCategoryClause(18)} OR ${getCategoryClause(19)} OR ${getCategoryClause(20)})`;
       } else if (userRole === "tukang-layanics") {
-        statusClause = `(${getCategoryClause(21)} OR ${getCategoryClause(22)})`;
+        statusClause = getCategoryClause(21);
       }
     }
 

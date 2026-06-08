@@ -83,6 +83,20 @@ function formatDate(input: string | null) {
     .replace(/\//g, "-");
 }
 
+function toLocalISOString(date: Date) {
+  const tzOffset = date.getTimezoneOffset() * 60000;
+  return (new Date(date.getTime() - tzOffset)).toISOString().slice(0, 16);
+}
+
+function parsePreviousDate(input: string | Date | null | undefined): Date {
+  if (!input) return new Date();
+  if (input instanceof Date) return input;
+  const normalized = input.replace(" ", "T");
+  const d = new Date(normalized);
+  if (isNaN(d.getTime())) return new Date();
+  return d;
+}
+
 function formatIndonesianDateTime(input: string | Date | null) {
   if (!input) {
     return "-";
@@ -439,6 +453,14 @@ export default function OrderJobPage() {
   const [isOverdueOpen, setIsOverdueOpen] = useState(false);
   const [selectedFo, setSelectedFo] = useState<FoOutstandingRow | null>(null);
 
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editFo, setEditFo] = useState<{ no_fo: string; customer: string; qty_order?: number } | null>(null);
 
@@ -447,6 +469,9 @@ export default function OrderJobPage() {
   const [modalSuccess, setModalSuccess] = useState("");
   const [selectedPegawai, setSelectedPegawai] = useState("NN");
   const [namaPenerima, setNamaPenerima] = useState("");
+  const [keterangan, setKeterangan] = useState("");
+  const [dateNextJob, setDateNextJob] = useState("");
+  const [isTimeEdited, setIsTimeEdited] = useState(false);
 
   useEffect(() => {
     if (!isEditModalOpen) {
@@ -454,6 +479,9 @@ export default function OrderJobPage() {
       setModalSuccess("");
       setSelectedPegawai("NN");
       setNamaPenerima("");
+      setKeterangan("");
+      setDateNextJob("");
+      setIsTimeEdited(false);
     } else if (session?.name) {
       const nameUpper = session.name.trim().toUpperCase();
       const validNames = [
@@ -485,15 +513,20 @@ export default function OrderJobPage() {
         username: session.username,
         nama_pegawai: selectedPegawai,
         nama_penerima: nextJobVal === "Produk diterima Customer" ? namaPenerima : undefined,
+        keterangan: keterangan.trim() || undefined,
+        datetime_lanjutan: dateNextJob || undefined,
       });
       setModalSuccess(res.message || "Pekerjaan berhasil diperbarui!");
+      showToast(res.message || "Pekerjaan berhasil diperbarui!", "success");
       queryClient.invalidateQueries();
       setTimeout(() => {
         setIsEditModalOpen(false);
         setEditFo(null);
       }, 1500);
     } catch (err: any) {
-      setModalError(err.message || "Gagal memperbarui pekerjaan.");
+      const errMsg = err.message || "Gagal memperbarui pekerjaan.";
+      setModalError(errMsg);
+      showToast(errMsg, "error");
     } finally {
       setIsUpdating(false);
     }
@@ -511,6 +544,30 @@ export default function OrderJobPage() {
     queryFn: () => api.getFoDetailItems({ no_fo: editFo!.no_fo, limit: "all" }),
     enabled: isEditModalOpen && !!editFo?.no_fo,
   });
+
+  useEffect(() => {
+    if (isEditModalOpen && editFoDetailQuery.data) {
+      const now = new Date();
+      setDateNextJob(toLocalISOString(now));
+      setIsTimeEdited(false);
+    }
+  }, [isEditModalOpen, editFoDetailQuery.data]);
+
+  useEffect(() => {
+    if (!isEditModalOpen || isTimeEdited) return;
+
+    const interval = setInterval(() => {
+      setDateNextJob((prev) => {
+        if (!prev) return prev;
+        const now = new Date();
+        const datePart = prev.split("T")[0];
+        const currentHourMin = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        return `${datePart}T${currentHourMin}`;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isEditModalOpen, isTimeEdited]);
 
   const [activeTab, setActiveTab] = useState<"summary" | "detail" | "job">("summary");
   const [detailSearch, setDetailSearch] = useState("");
@@ -582,7 +639,7 @@ export default function OrderJobPage() {
   const [foListLimit, setFoListLimit] = useState<number | "all">(5);
   const [foListSearch, setFoListSearch] = useState("");
   const [foListSearchBy, setFoListSearchBy] = useState<string>("no_fo");
-  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(1);
+  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(0);
 
   useEffect(() => {
     if (session) {
@@ -590,21 +647,21 @@ export default function OrderJobPage() {
       if (role === "tukang-desain") {
         setFoListStatusCategory(6);
       } else if (role === "tukang-layout") {
-        setFoListStatusCategory(7);
+        setFoListStatusCategory(0);
       } else if (role === "pengawas") {
         setFoListStatusCategory(0);
       } else if (role === "tukang-print") {
-        setFoListStatusCategory(9);
+        setFoListStatusCategory(0);
       } else if (role === "tukang-press" || role === "tukang-pressdtf") {
-        setFoListStatusCategory(12);
+        setFoListStatusCategory(0);
       } else if (role === "tukang-cutting") {
-        setFoListStatusCategory(14);
+        setFoListStatusCategory(0);
       } else if (role === "tukang-qc") {
         setFoListStatusCategory(0);
       } else if (role === "tukang-layanics") {
-        setFoListStatusCategory(0);
+        setFoListStatusCategory(21);
       } else {
-        setFoListStatusCategory(1);
+        setFoListStatusCategory(0);
       }
     }
   }, [session]);
@@ -1020,6 +1077,11 @@ export default function OrderJobPage() {
             {(session?.role?.toLowerCase() === "admin" ||
               session?.role?.toLowerCase() === "tukang-qc" ||
               session?.role?.toLowerCase() === "pengawas" ||
+              session?.role?.toLowerCase() === "tukang-layout" ||
+              session?.role?.toLowerCase() === "tukang-print" ||
+              session?.role?.toLowerCase() === "tukang-press" ||
+              session?.role?.toLowerCase() === "tukang-pressdtf" ||
+              session?.role?.toLowerCase() === "tukang-cutting" ||
               session?.role?.toLowerCase() === "tukang-layanics") && (
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-slate-400">Status:</span>
@@ -1033,12 +1095,50 @@ export default function OrderJobPage() {
                 >
                   {(() => {
                     const role = session?.role?.toLowerCase();
+                    if (role === "tukang-cutting") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data (Ready Cutting, Start Cutting)</option>
+                          <option value={14}>Ready Cutting</option>
+                          <option value={15}>Start Cutting</option>
+                        </>
+                      );
+                    }
+                    if (role === "tukang-press" || role === "tukang-pressdtf") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data (Ready to Press, Proses Press)</option>
+                          <option value={12}>Ready to Press</option>
+                          <option value={13}>Proses Press</option>
+                        </>
+                      );
+                    }
+                    if (role === "tukang-print") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data (Layout Ready, Start Print)</option>
+                          <option value={9}>Layout Ready</option>
+                          <option value={11}>Start Print</option>
+                        </>
+                      );
+                    }
+                    if (role === "tukang-layout") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data (Desain Ready, Start Layout)</option>
+                          <option value={7}>Desain Ready</option>
+                          <option value={8}>Start Layout</option>
+                        </>
+                      );
+                    }
                     if (role === "tukang-qc") {
                       return (
                         <>
                           <option value={0}>Semua Data (Jahit, QC, Packing)</option>
                           <option value={16}>Ready Jahit</option>
+                          <option value={17}>Proses Jahit</option>
                           <option value={18}>Ready QC</option>
+                          <option value={19}>Start QC</option>
                           <option value={20}>Ready Packing</option>
                         </>
                       );
@@ -1046,16 +1146,17 @@ export default function OrderJobPage() {
                     if (role === "pengawas") {
                       return (
                         <>
-                          <option value={0}>Semua Data (Print Ready, Cutting Ready)</option>
+                          <option value={0}>Semua Data (Print Ready, Cutting Ready, Persiapan Kain, Proses Printing)</option>
                           <option value={9}>Layout Print Ready</option>
                           <option value={14}>Kain Ready Cutting</option>
+                          <option value={10}>Persiapan Kain</option>
+                          <option value={11}>Proses Printing</option>
                         </>
                       );
                     }
                     if (role === "tukang-layanics") {
                       return (
                         <>
-                          <option value={0}>Semua Data (Packing Selesai, Final Cust)</option>
                           <option value={21}>Packing Selesai</option>
                           <option value={22}>Final Cust</option>
                         </>
@@ -4115,6 +4216,113 @@ export default function OrderJobPage() {
                   />
                 </div>
 
+                 {/* Date Next Job */}
+                 {nextJobVal !== "-" && !editFoDetailQuery.isLoading && (() => {
+                   const referenceDate = new Date();
+                   
+                   const dMinus1 = new Date(referenceDate);
+                   dMinus1.setDate(dMinus1.getDate() - 1);
+                   
+                   const dZero = new Date(referenceDate);
+                   
+                   const dPlus1 = new Date(referenceDate);
+                   dPlus1.setDate(dPlus1.getDate() + 1);
+
+                   const selectedDateObj = dateNextJob ? new Date(dateNextJob) : new Date();
+                   const isSameDay = (d1: Date, d2: Date) => 
+                     d1.getFullYear() === d2.getFullYear() &&
+                     d1.getMonth() === d2.getMonth() &&
+                     d1.getDate() === d2.getDate();
+
+                   const getTimeString = (dateTimeStr: string) => {
+                     if (!dateTimeStr) {
+                       const now = new Date();
+                       return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                     }
+                     const parts = dateTimeStr.split("T");
+                     if (parts[1]) return parts[1].slice(0, 5);
+                     const now = new Date();
+                     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                   };
+
+                   const handleDateSelect = (targetDate: Date) => {
+                     const currentTime = getTimeString(dateNextJob);
+                     const year = targetDate.getFullYear();
+                     const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+                     const day = String(targetDate.getDate()).padStart(2, '0');
+                     setDateNextJob(`${year}-${month}-${day}T${currentTime}`);
+                   };
+
+                   const handleTimeChange = (timeStr: string) => {
+                     const currentDatePart = dateNextJob ? dateNextJob.split("T")[0] : toLocalISOString(new Date()).split("T")[0];
+                     setDateNextJob(`${currentDatePart}T${timeStr}`);
+                     setIsTimeEdited(true);
+                   };
+
+                   return (
+                     <div className="space-y-3">
+                       <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Waktu Selesai Job (Date Next Job)</label>
+                       
+                       <div className="grid grid-cols-3 gap-2">
+                         <button
+                           type="button"
+                           onClick={() => handleDateSelect(dMinus1)}
+                           className={`p-2 rounded-lg border text-center transition flex flex-col items-center justify-center ${
+                             isSameDay(selectedDateObj, dMinus1)
+                               ? "border-amber-500 bg-amber-500/10 text-amber-200"
+                               : "border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                           }`}
+                         >
+                           <span className="text-[9px] font-bold uppercase tracking-wider">H-1 (Kemarin)</span>
+                           <span className="text-[11px] font-mono mt-0.5">{formatIndonesianDate(dMinus1)}</span>
+                         </button>
+                         
+                         <button
+                           type="button"
+                           onClick={() => handleDateSelect(dZero)}
+                           className={`p-2 rounded-lg border text-center transition flex flex-col items-center justify-center ${
+                             isSameDay(selectedDateObj, dZero)
+                               ? "border-amber-500 bg-amber-500/10 text-amber-200"
+                               : "border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                           }`}
+                         >
+                           <span className="text-[9px] font-bold uppercase tracking-wider">H0 (Hari Status)</span>
+                           <span className="text-[11px] font-mono mt-0.5">{formatIndonesianDate(dZero)}</span>
+                         </button>
+
+                         <button
+                           type="button"
+                           onClick={() => handleDateSelect(dPlus1)}
+                           className={`p-2 rounded-lg border text-center transition flex flex-col items-center justify-center ${
+                             isSameDay(selectedDateObj, dPlus1)
+                               ? "border-amber-500 bg-amber-500/10 text-amber-200"
+                               : "border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:text-slate-300"
+                           }`}
+                         >
+                           <span className="text-[9px] font-bold uppercase tracking-wider">H+1 (Besok)</span>
+                           <span className="text-[11px] font-mono mt-0.5">{formatIndonesianDate(dPlus1)}</span>
+                         </button>
+                       </div>
+
+                       <div className="flex items-center gap-3 bg-slate-950/40 p-2.5 rounded-lg border border-slate-850">
+                         <span className="text-xs text-slate-400 font-medium shrink-0">Pukul / Jam Selesai:</span>
+                         <input
+                           type="time"
+                           value={getTimeString(dateNextJob)}
+                           onChange={(e) => handleTimeChange(e.target.value)}
+                           className="flex-1 h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition font-mono"
+                           disabled={isUpdating}
+                           required
+                         />
+                       </div>
+                       
+                       <span className="text-[10px] text-slate-500 mt-1 block">
+                         Toleransi batas waktu pengerjaan: H-1 s.d H+1 dari status sebelumnya.
+                       </span>
+                     </div>
+                   );
+                 })()}
+
                 {/* Nama Pegawai */}
                 {nextJobVal !== "-" && !editFoDetailQuery.isLoading ? (
                   <div>
@@ -4151,6 +4359,20 @@ export default function OrderJobPage() {
                       className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
                       disabled={isUpdating}
                       required
+                    />
+                  </div>
+                ) : null}
+
+                {/* Keterangan */}
+                {nextJobVal !== "-" && !editFoDetailQuery.isLoading ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Keterangan</label>
+                    <textarea
+                      value={keterangan}
+                      onChange={(e) => setKeterangan(e.target.value)}
+                      placeholder="Masukkan keterangan pekerjaan jika ada"
+                      className="w-full min-h-[80px] rounded-lg border border-slate-800 bg-slate-950 p-3 text-sm text-slate-200 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-none"
+                      disabled={isUpdating}
                     />
                   </div>
                 ) : null}
@@ -4193,6 +4415,43 @@ export default function OrderJobPage() {
           );
         })()
       ) : null}
+
+      {toast && (
+        <>
+          <style>{`
+            @keyframes slideInRight {
+              from {
+                transform: translateX(100%);
+                opacity: 0;
+              }
+              to {
+                transform: translateX(0);
+                opacity: 1;
+              }
+            }
+            .animate-slide-in-right {
+              animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+          `}</style>
+          <div className="fixed bottom-5 right-5 z-[9999] animate-slide-in-right">
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-2xl transition-all duration-300 ${
+              toast.type === "success" 
+                ? "bg-emerald-950/90 border-emerald-500/30 text-emerald-200" 
+                : "bg-rose-950/90 border-rose-500/30 text-rose-200"
+            }`}>
+              {toast.type === "success" ? (
+                <Check className="size-5 text-emerald-400 shrink-0" />
+              ) : (
+                <X className="size-5 text-rose-400 shrink-0" />
+              )}
+              <div className="text-sm font-medium">{toast.message}</div>
+              <button onClick={() => setToast(null)} className="ml-2 hover:opacity-75 transition-opacity">
+                <X className="size-4 opacity-60" />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }

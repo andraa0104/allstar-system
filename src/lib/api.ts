@@ -338,7 +338,7 @@ export const api = {
     );
   },
 
-  updateJob(payload: { no_fo: string; username: string; nama_pegawai?: string; nama_penerima?: string }) {
+  updateJob(payload: { no_fo: string; username: string; nama_pegawai?: string; nama_penerima?: string; keterangan?: string; datetime_lanjutan?: string }) {
     return apiFetch<{ message?: string; nextStatus?: string; ketStatus?: string }>("/production/update-job", {
       method: "POST",
       body: payload,

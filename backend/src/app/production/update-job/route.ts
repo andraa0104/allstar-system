@@ -18,7 +18,7 @@ const formatToMysqlDateTime = (date: Date): string => {
 export async function POST(request: Request) {
   const connection = await pool.getConnection();
   try {
-    const { no_fo, username, nama_pegawai, nama_penerima } = await request.json();
+    const { no_fo, username, nama_pegawai, nama_penerima, keterangan, datetime_lanjutan } = await request.json();
 
     if (!no_fo || !username) {
       return jsonResponse({ message: "Parameter 'no_fo' dan 'username' wajib diisi." }, { status: 400 }, request);
@@ -254,8 +254,17 @@ export async function POST(request: Request) {
     // Begin SQL Transaction
     await connection.beginTransaction();
 
-    const witaNow = getWitaTime();
-    const witaNowStr = formatToMysqlDateTime(witaNow);
+    const actualNowStr = formatToMysqlDateTime(getWitaTime());
+
+    let witaNowStr = "";
+    if (datetime_lanjutan) {
+      witaNowStr = String(datetime_lanjutan).replace("T", " ");
+      if (witaNowStr.length === 16) {
+        witaNowStr += ":00";
+      }
+    } else {
+      witaNowStr = actualNowStr;
+    }
 
     let ket_status = "";
     let updateFields: Record<string, string> = {
@@ -452,9 +461,26 @@ export async function POST(request: Request) {
         break;
     }
 
+    if (datetime_lanjutan) {
+      const todayObj = new Date(actualNowStr);
+      const selectedDateObj = new Date(datetime_lanjutan);
+
+      const minDate = new Date(todayObj);
+      minDate.setDate(minDate.getDate() - 1);
+      minDate.setHours(0, 0, 0, 0);
+
+      const maxDate = new Date(todayObj);
+      maxDate.setDate(maxDate.getDate() + 1);
+      maxDate.setHours(23, 59, 59, 999);
+
+      if (selectedDateObj < minDate || selectedDateObj > maxDate) {
+        return jsonResponse({ message: `Waktu pengerjaan harus antara H-1 s/d H+1 dari hari ini.` }, { status: 400 }, request);
+      }
+    }
+
     const controlData = {
       no_job: noJob,
-      doc_date: witaNowStr,
+      doc_date: actualNowStr,
       no_fo: fo.no_fo,
       order_date: fo.order_date ? formatToMysqlDateTime(new Date(fo.order_date)) : null,
       deposit_date: fo.tgl_um ? formatToMysqlDateTime(new Date(fo.tgl_um)) : (fo.order_date ? formatToMysqlDateTime(new Date(fo.order_date)) : null),
@@ -467,7 +493,7 @@ export async function POST(request: Request) {
       nama_pegawai: namePegawai,
       username: username,
       jobdesk: jobdesk,
-      ket: fo.ket
+      ket: (keterangan !== undefined && keterangan !== null) ? keterangan : null
     };
 
     await connection.execute(
