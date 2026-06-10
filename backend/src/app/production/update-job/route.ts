@@ -527,9 +527,62 @@ export async function POST(request: Request) {
         if (formattedPhone.length >= 10) {
           let message = "";
           if (cmbstatus === "Selesai Packing, Siap diAmbil") {
-            message = `Hallo kak *${customer}*, barangnya sudah selesai dan siap ambil. Terima kasih telah mempercayakan orderan jersynya kepada kami. Kami tunggu kedatangannya kak☺️🙏🏻\n\nCS : ${username}\n\nALAMAT TOKO : \nAllstar Apparel\nAlamat : Jalan Pelita No.61 C Sungai Pinang Dalam (tengah tengah idm dan ghufta)\nNo. Hp/wa : 0852-5709-1894`;
+            message = `Halo kak *${customer}* 🎉
+
+Dengan senang hati kami informasikan bahwa pesanan jerseynya telah selesai dikerjakan dengan hasil yang memuaskan dan siap untuk Anda ambil. ✨
+
+📋 *DETAIL PESANAN*
+✅ Nomor Form Order (FO): ${no_fo}
+✅ Pengambilan: Kapan saja sesuai jam operasional
+✅ Lokasi: https://maps.app.goo.gl/NbhMbU7j1nRqUmCw8
+
+🎁 *PENAWARAN SPESIAL UNTUK ANDA*
+Jangan lewatkan kesempatan emas ini:
+💰 Order 6+ jersey → Dapatkan harga promo bulanan/tahunan (hemat banyak!)
+🎨 Konsultasi desain GRATIS untuk pemesanan berikutnya
+
+---
+
+📍 *LOKASI TOKO KAMI*
+*Allstar Apparel*
+Jalan Pelita No.61 C, Sungai Pinang Dalam
+*(Lokasi strategis: Berada di antara Indomaret dan Ghufta Computer)*
+
+📞 Hubungi Kami:
+WhatsApp/Telepon: 0852-5709-1894
+
+Terima kasih telah mempercayai Allstar Apparel untuk hasil terbaik! Ditunggu kedatangan Anda 🙏🏻✨
+
+*CS: SAFA & PUSPA* 💪`;
           } else {
-            message = `Terima kasih barangnya sudah diterima oleh *${nama_penerima}* dan telah berbelanja di Allstar Apparel. Kritik dan saran dipersilahkan kakak, jangan lupa follow ig @allstar_apparel_samarinda dan berikan riview digoogle maps kami kak🙏🏻\nNext bisa repeat order lagi ya kakak🤩`;
+            message = `Thank you kak  🙏🏻✨ 
+Senang banget mengabarkan jerseynya sudah diterima oleh *${nama_penerima}*! Semoga hasil dan kualitasnya memuaskan 🎊
+
+📸 *SHARE PENGALAMAN ANDA BERSAMA KAMI!*
+ Udah nyoba jerseynya? Jangan lupa: 
+✅ Follow IG kami: @allstar_apparel_samarinda 
+✅ Tag kami di stories/post anda (biar kami repost!) 
+✅ Drop review di Google Maps (review bintang 5 are appreciated 🌟) 
+
+💬 Feedback & saran dari anda sangat berharga buat kami! Bisa DM kami melalui Instagram 🙏🏻
+
+🎁 *PENAWARAN SPESIAL UNTUK PEMBELIAN BERIKUTNYA*
+ Jangan hanya sekali berbelanja, repeat order dan dapet keuntungan: 
+💰 Order 6+ jersey bulan ini dapat harga promo
+🎨 Konsultasi desain GRATIS untuk pemesanan berikutnya 
+
+
+🏪 *WELCOME BACK ANYTIME* 
+*Allstar Apparel* 
+Jl. Pelita No.61 C, Sungai Pinang Dalam 
+📍 Ruko bagian tengah Antara Indomaret & Ghufta Computer 
+
+Untuk pemesanan selanjutnya, silakan hubungi kami:
+📱 WhatsApp/Telepon: 0852-5709-1894 
+
+Thanks for the love! See you soon kak 🙌✨ 
+
+*${username}* 💪`;
           }
 
           fetch("http://localhost:8011/send-message", {

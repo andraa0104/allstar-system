@@ -130,6 +130,7 @@ export const api = {
     limit?: number | "all";
     search?: string;
     username?: string;
+    status_category?: number;
   }) {
     const searchParams = new URLSearchParams();
 
@@ -144,6 +145,9 @@ export const api = {
     }
     if (params?.username) {
       searchParams.set("username", params.username);
+    }
+    if (params?.status_category !== undefined) {
+      searchParams.set("status_category", String(params.status_category));
     }
 
     const query = searchParams.toString();
@@ -413,6 +417,11 @@ export const api = {
 
   getWhatsAppStatus() {
     return apiFetch<{ status: string; qr: string | null; error?: string }>("/settings/whatsapp");
+  },
+  logoutWhatsApp() {
+    return apiFetch<{ success?: boolean }>("/settings/whatsapp", {
+      method: "POST",
+    });
   },
 };
 

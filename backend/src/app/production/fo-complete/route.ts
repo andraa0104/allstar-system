@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const uniqueFoSql = `
       SELECT
         TRIM(k.no_fo) AS no_fo,
-        k.order_date AS doc_date,
+        k.date_status AS doc_date,
         k.customer AS customer,
         k.ket_status AS status_lanjutan,
         k.QC_ReadyGudang AS QC_ReadyGudang,
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     `;
 
     // Completion date is overall FO completion dates or fallback to doc_date
-    const completedDateExpr = "COALESCE(unique_fo.Final_Cust, unique_fo.QC_ReadyGudang, unique_fo.doc_date)";
+    const completedDateExpr = "unique_fo.doc_date";
 
     let dateClause = "1=1";
     const params: any = {

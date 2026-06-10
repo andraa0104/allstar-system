@@ -123,6 +123,33 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
+app.post("/logout", async (req, res) => {
+  if (!sock) {
+    return res.status(400).json({ error: "WhatsApp socket is not initialized." });
+  }
+
+  try {
+    if (connState === "connected") {
+      await sock.logout();
+    } else {
+      // Just clear session dir and restart
+      try {
+        fs.rmSync(sessionDir, { recursive: true, force: true });
+      } catch (e) {
+        console.error("Failed to clear session dir:", e);
+      }
+      connState = "disconnected";
+      latestQr = null;
+      // Reconnect so a new QR code is generated
+      setTimeout(() => connectToWhatsApp(), 1000);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error logging out:", err);
+    res.status(500).json({ error: "Failed to log out: " + err.message });
+  }
+});
+
 // Start the express server
 app.listen(port, () => {
   console.log(`WhatsApp Gateway Service listening at http://localhost:${port}`);

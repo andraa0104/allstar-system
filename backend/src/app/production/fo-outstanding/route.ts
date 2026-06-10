@@ -26,6 +26,8 @@ export async function GET(request: Request) {
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
     const username = url.searchParams.get("username")?.trim() ?? "";
+    const statusCategory = url.searchParams.get("status_category") ?? "0";
+    const selectedCat = Number(statusCategory);
     const isAllData = rawLimit === "all";
     const limit = isAllData
       ? null
@@ -132,7 +134,13 @@ export async function GET(request: Request) {
       } else if (userRole === "tukang-press") {
         activeClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
       } else if (userRole === "tukang-pressdtf") {
-        activeClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        if (selectedCat === 12) {
+          activeClause = `(${getCategoryClause(12)} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        } else if (selectedCat === 13) {
+          activeClause = `(${getCategoryClause(13)} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        } else {
+          activeClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        }
       } else if (userRole === "tukang-cutting") {
         activeClause = `(${getCategoryClause(14)} OR ${getCategoryClause(15)})`;
       } else if (userRole === "tukang-qc") {

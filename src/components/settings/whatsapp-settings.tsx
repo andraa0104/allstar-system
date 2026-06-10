@@ -9,6 +9,22 @@ export function WhatsAppSettings() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
+  async function handleLogout() {
+    if (!confirm("Apakah Anda yakin ingin keluar dari WhatsApp? Sesi perangkat ini akan dihapus.")) {
+      return;
+    }
+    setLogoutLoading(true);
+    try {
+      await api.logoutWhatsApp();
+      await fetchStatus();
+    } catch (err: any) {
+      setError("Gagal melakukan logout dari WhatsApp.");
+    } finally {
+      setLogoutLoading(false);
+    }
+  }
 
   async function fetchStatus() {
     setLoading(true);
@@ -133,14 +149,26 @@ export function WhatsAppSettings() {
 
         {/* Connected Details Block */}
         {status === "connected" && (
-          <div className="border border-slate-800/80 rounded-xl p-4 bg-slate-950/20 space-y-3">
-            <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-              <CheckCircle2 size={14} className="text-emerald-400" />
-              Sistem Siap Beroperasi
-            </h4>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Anda tidak perlu melakukan tindakan apa pun sekarang. Ketika pekerjaan diperbarui di modul produksi ke status selesai dipacking, server akan memproses pengiriman notifikasi otomatis secara real-time.
-            </p>
+          <div className="border border-slate-800/80 rounded-xl p-4 bg-slate-950/20 space-y-4">
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-emerald-400" />
+                Sistem Siap Beroperasi
+              </h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Anda tidak perlu melakukan tindakan apa pun sekarang. Ketika pekerjaan diperbarui di modul produksi ke status selesai dipacking, server akan memproses pengiriman notifikasi otomatis secara real-time.
+              </p>
+            </div>
+            
+            <div className="pt-2.5 border-t border-slate-800/60 flex justify-end">
+              <button
+                onClick={handleLogout}
+                disabled={logoutLoading}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-lg disabled:opacity-50 transition duration-300"
+              >
+                {logoutLoading ? "Keluar..." : "Keluar dari WhatsApp"}
+              </button>
+            </div>
           </div>
         )}
       </div>

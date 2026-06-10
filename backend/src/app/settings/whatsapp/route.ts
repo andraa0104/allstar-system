@@ -22,6 +22,21 @@ export async function GET(request: Request) {
   }
 }
 
+export async function POST(request: Request) {
+  try {
+    const res = await fetch("http://localhost:8011/logout", {
+      method: "POST",
+    });
+    if (!res.ok) {
+      throw new Error(`WhatsApp service responded with status ${res.status}`);
+    }
+    const data = await res.json();
+    return jsonResponse(data, {}, request);
+  } catch (error) {
+    return errorResponse(error, request);
+  }
+}
+
 export async function OPTIONS(request: Request) {
   return emptyResponse({ status: 204 }, request);
 }

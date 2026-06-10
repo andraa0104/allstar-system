@@ -613,6 +613,7 @@ export default function OrderJobPage() {
   const [outstandingPage, setOutstandingPage] = useState(1);
   const [outstandingLimit, setOutstandingLimit] = useState<number | "all">(5);
   const [outstandingSearch, setOutstandingSearch] = useState("");
+  const [outstandingStatusCategory, setOutstandingStatusCategory] = useState<number>(0);
 
   // States for Deadline Modal
   const [deadlinePage, setDeadlinePage] = useState(1);
@@ -687,13 +688,14 @@ export default function OrderJobPage() {
   });
 
   const outstandingTable = useQuery({
-    queryKey: ["fo-outstanding", outstandingPage, outstandingLimit, outstandingSearch, usernameFilter],
+    queryKey: ["fo-outstanding", outstandingPage, outstandingLimit, outstandingSearch, outstandingStatusCategory, usernameFilter],
     queryFn: () =>
       api.getFoOutstanding({
         page: outstandingPage,
         limit: outstandingLimit,
         search: outstandingSearch,
         username: usernameFilter,
+        status_category: outstandingStatusCategory,
       }),
     enabled: isOutstandingOpen,
   });
@@ -1104,7 +1106,16 @@ export default function OrderJobPage() {
                         </>
                       );
                     }
-                    if (role === "tukang-press" || role === "tukang-pressdtf") {
+                    if (role === "tukang-pressdtf") {
+                      return (
+                        <>
+                          <option value={0}>Semua Data</option>
+                          <option value={12}>Siap Press</option>
+                          <option value={13}>Proses Press</option>
+                        </>
+                      );
+                    }
+                    if (role === "tukang-press") {
                       return (
                         <>
                           <option value={0}>Semua Data (Ready to Press, Proses Press)</option>
@@ -1502,6 +1513,24 @@ export default function OrderJobPage() {
                     className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-white outline-none focus:border-cyan-400"
                   />
                 </label>
+
+                {session?.role?.toLowerCase() === "tukang-pressdtf" && (
+                  <label className="grid gap-2 text-sm md:w-56">
+                    <span className="font-medium text-slate-300">Status</span>
+                    <select
+                      value={outstandingStatusCategory}
+                      onChange={(event) => {
+                        setOutstandingStatusCategory(Number(event.target.value));
+                        setOutstandingPage(1);
+                      }}
+                      className="h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-white outline-none focus:border-cyan-400"
+                    >
+                      <option value={0}>Semua Data</option>
+                      <option value={12}>Siap Press</option>
+                      <option value={13}>Proses Press</option>
+                    </select>
+                  </label>
+                )}
 
                 <label className="grid gap-2 text-sm md:w-44">
                   <span className="font-medium text-slate-300">Tampilkan</span>
