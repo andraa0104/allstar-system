@@ -416,7 +416,9 @@ export const api = {
   },
 
   getWhatsAppStatus() {
-    return apiFetch<{ status: string; qr: string | null; error?: string }>("/settings/whatsapp");
+    return apiFetch<{ status: string; qr: string | null; error?: string }>(`/settings/whatsapp?t=${Date.now()}`, {
+      cache: "no-store",
+    });
   },
   logoutWhatsApp() {
     return apiFetch<{ success?: boolean }>("/settings/whatsapp", {
