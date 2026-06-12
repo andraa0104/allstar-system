@@ -203,7 +203,7 @@ export async function GET(request: Request) {
     const total = Number(countRows[0]?.total ?? 0);
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const [items] = await pool.execute<FoListRow[]>(
-      `SELECT no_fo, order_date, doc_date, deadline_date, datetime_lanjutan, customer, qty_order, status_lanjutan
+      `SELECT no_fo, order_date, doc_date, deadline_date, datetime_lanjutan, customer, qty_order, status_lanjutan, uang_muka, sisa_tagihan, totalrp
        FROM (${uniqueFoSql}) AS unique_fo
        WHERE ${filterWhereClause}
        ORDER BY 

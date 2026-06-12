@@ -184,7 +184,7 @@ export async function GET(request: Request) {
       `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status, 
               latest_datetime_lanjutan AS datetime_lanjutan,
               DATEDIFF(deadline_date, CURDATE()) AS deadline_days,
-              deadline_date
+              deadline_date, uang_muka, sisa_tagihan, totalrp
        FROM (${uniqueFoSql}) AS unique_fo
        WHERE ${filterWhereClause}
        ORDER BY deadline_date ASC, unique_fo.no_fo DESC

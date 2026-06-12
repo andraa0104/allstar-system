@@ -52,6 +52,9 @@ export async function GET(request: Request) {
         k.date_status AS doc_date,
         k.customer AS customer,
         k.ket_status AS status_lanjutan,
+        k.uang_muka AS uang_muka,
+        k.sisa_tagihan AS sisa_tagihan,
+        k.totalrp AS totalrp,
         k.QC_ReadyGudang AS QC_ReadyGudang,
         k.Final_Cust AS Final_Cust,
         k.FinalQC_Packiing AS FinalQC_Packiing,
@@ -142,7 +145,8 @@ export async function GET(request: Request) {
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const querySql = `SELECT unique_fo.no_fo, unique_fo.doc_date, unique_fo.customer, 
                              unique_fo.status_lanjutan, unique_fo.status_lanjutan AS status,
-                             unique_fo.QC_ReadyGudang, unique_fo.Final_Cust
+                             unique_fo.QC_ReadyGudang, unique_fo.Final_Cust,
+                             unique_fo.uang_muka, unique_fo.sisa_tagihan, unique_fo.totalrp
                       FROM (${uniqueFoSql}) AS unique_fo
                       WHERE ${searchWhereClause}
                       ORDER BY unique_fo.no_fo DESC, unique_fo.doc_date DESC

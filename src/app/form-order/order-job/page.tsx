@@ -193,6 +193,34 @@ function formatRupiah(value: number | string | null) {
   return "Rp. " + num.toLocaleString("id-ID");
 }
 
+function renderPaymentStatus(dpValue: number | string | null | undefined, remainingValue: number | string | null | undefined) {
+  const dp = dpValue !== null && dpValue !== undefined && dpValue !== "" ? Number(dpValue) : 0;
+  const remaining = remainingValue !== null && remainingValue !== undefined && remainingValue !== "" ? Number(remainingValue) : 0;
+
+  if (dp === 0) {
+    return (
+      <span className="ml-2 inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400 border border-red-500/20">
+        Belum Bayar
+      </span>
+    );
+  }
+  if (remaining === 0) {
+    return (
+      <span className="ml-2 inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-500/20">
+        Lunas
+      </span>
+    );
+  }
+  if (dp !== remaining && dp > 0 && remaining > 0) {
+    return (
+      <span className="ml-2 inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400 border border-amber-500/20">
+        Belum Lunas
+      </span>
+    );
+  }
+  return null;
+}
+
 interface RemainingDeadlineWidgetProps {
   posDate: string | null;
   deadlineDate: string | null;
@@ -1312,8 +1340,9 @@ export default function OrderJobPage() {
                   <td className="px-5 py-4 text-slate-400 text-xs font-mono">
                     {formatIndonesianDateTime(item.datetime_lanjutan)}
                   </td>
-                  <td className="px-5 py-4 text-slate-300 font-medium truncate max-w-[200px]" title={item.customer ?? ""}>
+                  <td className="px-5 py-4 text-slate-300 font-medium" title={item.customer ?? ""}>
                     {item.customer ?? "-"}
+                    {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                   </td>
                   <td className="px-5 py-4 text-slate-300 font-mono font-semibold">
                     {item.qty_order ?? "-"}
@@ -1421,9 +1450,12 @@ export default function OrderJobPage() {
 
               <div className="space-y-1">
                 <span className="block text-[9px] uppercase font-bold text-slate-500 tracking-wider">Customer</span>
-                <span className="text-xs text-slate-200 font-semibold leading-relaxed block break-words" title={item.customer ?? ""}>
-                  {item.customer ?? "-"}
-                </span>
+                <div className="flex items-center flex-wrap gap-1.5">
+                  <span className="text-xs text-slate-200 font-semibold leading-relaxed block break-words" title={item.customer ?? ""}>
+                    {item.customer ?? "-"}
+                  </span>
+                  {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3 pt-2.5 border-t border-slate-800/40">
@@ -1587,6 +1619,7 @@ export default function OrderJobPage() {
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.customer ?? "-"}
+                        {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
@@ -1698,8 +1731,9 @@ export default function OrderJobPage() {
                           <User size={13} className="text-slate-400" />
                           <span>Customer</span>
                         </div>
-                        <div className="font-medium text-slate-300 truncate" title={item.customer ?? "-"}>
-                          {item.customer ?? "-"}
+                        <div className="font-medium text-slate-300 flex flex-wrap gap-1 items-center" title={item.customer ?? "-"}>
+                          <span>{item.customer ?? "-"}</span>
+                          {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
                     </div>
@@ -1871,6 +1905,7 @@ export default function OrderJobPage() {
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.customer ?? "-"}
+                        {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
@@ -1982,8 +2017,9 @@ export default function OrderJobPage() {
                           <User size={13} className="text-slate-400" />
                           <span>Customer</span>
                         </div>
-                        <div className="font-medium text-slate-300 truncate" title={item.customer ?? "-"}>
-                          {item.customer ?? "-"}
+                        <div className="font-medium text-slate-300 flex flex-wrap gap-1 items-center" title={item.customer ?? "-"}>
+                          <span>{item.customer ?? "-"}</span>
+                          {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
                     </div>
@@ -2159,6 +2195,7 @@ export default function OrderJobPage() {
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.customer ?? "-"}
+                        {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
@@ -2269,8 +2306,9 @@ export default function OrderJobPage() {
                           <User size={13} className="text-slate-400" />
                           <span>Customer</span>
                         </div>
-                        <div className="font-medium text-slate-300 truncate" title={item.customer ?? "-"}>
-                          {item.customer ?? "-"}
+                        <div className="font-medium text-slate-300 flex flex-wrap gap-1 items-center" title={item.customer ?? "-"}>
+                          <span>{item.customer ?? "-"}</span>
+                          {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
                     </div>
@@ -2490,6 +2528,7 @@ export default function OrderJobPage() {
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.customer ?? "-"}
+                        {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
@@ -2571,8 +2610,9 @@ export default function OrderJobPage() {
                           <User size={13} className="text-slate-400" />
                           <span>Customer</span>
                         </div>
-                        <div className="font-medium text-slate-300 truncate" title={item.customer ?? "-"}>
-                          {item.customer ?? "-"}
+                        <div className="font-medium text-slate-300 flex flex-wrap gap-1 items-center" title={item.customer ?? "-"}>
+                          <span>{item.customer ?? "-"}</span>
+                          {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
                     </div>

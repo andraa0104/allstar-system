@@ -57,6 +57,9 @@ export type FoOutstandingRow = {
   datetime_lanjutan?: string | null;
   deadline_days?: number;
   deadline_date?: string | null;
+  uang_muka?: number | null;
+  sisa_tagihan?: number | null;
+  totalrp?: number | null;
 };
 
 export type FoOutstandingResponse = {
@@ -181,6 +184,9 @@ export type FoListRow = {
   customer: string | null;
   qty_order: number | null;
   status_lanjutan: string | null;
+  uang_muka?: number | null;
+  sisa_tagihan?: number | null;
+  totalrp?: number | null;
 };
 
 export type FoListResponse = {
