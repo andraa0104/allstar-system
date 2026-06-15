@@ -928,9 +928,22 @@ export default function ProductionPipelinePage() {
       <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-md shadow-xl shadow-slate-950/20">
         <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white flex flex-wrap items-center gap-2">
               <ClipboardList className="text-cyan-400 size-5" />
               Daftar Form Order (FO)
+              {!foListTable.isLoading && foListTable.data?.totalQty !== undefined && (
+                <div className="flex flex-wrap items-center gap-1.5 ml-2">
+                  <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                    {foListTable.data.totalStel?.toLocaleString("id-ID") ?? 0} Stel
+                  </span>
+                  <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
+                    {foListTable.data.totalPcs?.toLocaleString("id-ID") ?? 0} Pcs
+                  </span>
+                  <span className="inline-flex items-center rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-400 border border-cyan-500/20">
+                    Total: {foListTable.data.totalQty.toLocaleString("id-ID")} Qty
+                  </span>
+                </div>
+              )}
             </h2>
             <p className="text-xs text-slate-400 mt-1">
               Daftar lengkap seluruh Form Order (FO) dari database dengan penyaringan dinamis.
@@ -1202,7 +1215,7 @@ export default function ProductionPipelinePage() {
           <p>
             {foListTable.isFetching
               ? "Memperbarui data..."
-              : `Menampilkan ${foListTable.data?.items?.length ?? 0} dari total ${foListTable.data?.count ?? 0} data. Halaman ${foListTable.data?.page ?? foListPage} dari ${foListTable.data?.totalPages ?? 1}`}
+              : `Menampilkan ${foListTable.data?.items?.length ?? 0} dari total ${foListTable.data?.count ?? 0} data (${foListTable.data?.totalStel?.toLocaleString("id-ID") ?? 0} Stel, ${foListTable.data?.totalPcs?.toLocaleString("id-ID") ?? 0} Pcs, Total Qty: ${foListTable.data?.totalQty?.toLocaleString("id-ID") ?? 0} Pcs). Halaman ${foListTable.data?.page ?? foListPage} dari ${foListTable.data?.totalPages ?? 1}`}
           </p>
           <div className="flex gap-2">
             <button

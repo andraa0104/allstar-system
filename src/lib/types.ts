@@ -192,6 +192,9 @@ export type FoListRow = {
 
 export type FoListResponse = {
   count: number;
+  totalQty?: number;
+  totalStel?: number;
+  totalPcs?: number;
   items: FoListRow[];
   page: number;
   limit: number | "all";

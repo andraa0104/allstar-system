@@ -200,7 +200,29 @@ export async function GET(request: Request) {
       params,
     );
 
+    const [sumRows] = await pool.execute<any[]>(
+      `SELECT 
+        (
+          SELECT COALESCE(SUM(d.qty), 0)
+          FROM tb_kdfodetail d
+          WHERE TRIM(d.no_fo) IN (
+            SELECT unique_fo.no_fo 
+            FROM (${uniqueFoSql}) AS unique_fo
+            WHERE ${filterWhereClause}
+          ) AND d.produk LIKE '%SETELAN%'
+        ) AS total_stel,
+        (
+          SELECT COALESCE(SUM(unique_fo.qty_order), 0)
+          FROM (${uniqueFoSql}) AS unique_fo
+          WHERE ${filterWhereClause}
+        ) AS total_qty`,
+      params,
+    );
+
     const total = Number(countRows[0]?.total ?? 0);
+    const totalStel = Number(sumRows[0]?.total_stel ?? 0);
+    const totalQty = Number(sumRows[0]?.total_qty ?? 0);
+    const totalPcs = Math.max(0, totalQty - totalStel);
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const [items] = await pool.execute<FoListRow[]>(
       `SELECT no_fo, order_date, doc_date, deadline_date, datetime_lanjutan, customer, qty_order, status_lanjutan, uang_muka, sisa_tagihan, totalrp
@@ -224,6 +246,9 @@ export async function GET(request: Request) {
     return jsonResponse(
       {
         count: total,
+        totalQty,
+        totalStel,
+        totalPcs,
         items,
         page,
         limit: isAllData ? "all" : limit,
