@@ -15,6 +15,7 @@ type OutstandingRow = RowDataPacket & {
   no_fo: string;
   doc_date: Date | string | null;
   customer: string | null;
+  qty_order: number | null;
   status: string | null;
   status_lanjutan: string | null;
 };
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
         TRIM(k.no_fo) AS no_fo,
         k.order_date AS doc_date,
         k.customer AS customer,
+        c.qty_order AS qty_order,
         k.ket_status AS status_lanjutan,
         k.uang_muka AS uang_muka,
         k.sisa_tagihan AS sisa_tagihan,
@@ -66,6 +68,7 @@ export async function GET(request: Request) {
         k.Final_Cust AS Final_Cust,
         NULL AS username
       FROM tb_kdfo k
+      LEFT JOIN tb_control c ON TRIM(k.no_fo) = TRIM(c.no_fo)
       WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
@@ -170,7 +173,7 @@ export async function GET(request: Request) {
     const total = Number(countRows[0]?.total ?? 0);
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const [items] = await pool.execute<OutstandingRow[]>(
-      `SELECT no_fo, doc_date, customer, status_lanjutan, status_lanjutan AS status, uang_muka, sisa_tagihan, totalrp
+      `SELECT no_fo, doc_date, customer, qty_order, status_lanjutan, status_lanjutan AS status, uang_muka, sisa_tagihan, totalrp
        FROM (${uniqueFoSql}) AS unique_fo
        WHERE ${searchWhereClause}
        ORDER BY unique_fo.doc_date DESC, unique_fo.no_fo DESC

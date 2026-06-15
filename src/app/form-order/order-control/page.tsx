@@ -1289,6 +1289,7 @@ export default function ProductionPipelinePage() {
                     <th className="px-5 py-3 font-medium">No FO</th>
                     <th className="px-5 py-3 font-medium">Date</th>
                     <th className="px-5 py-3 font-medium">Customer</th>
+                    <th className="px-5 py-3 font-medium">Qty</th>
                     <th className="px-5 py-3 font-medium">Status</th>
                     <th className="px-5 py-3 text-right font-medium">Action</th>
                   </tr>
@@ -1298,7 +1299,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={5}
+                        colSpan={6}
                       >
                         Memuat data FO Outstanding...
                       </td>
@@ -1316,6 +1317,9 @@ export default function ProductionPipelinePage() {
                       <td className="px-5 py-4 text-slate-300">
                         {item.customer ?? "-"}
                         {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
+                      </td>
+                      <td className="px-5 py-4 text-slate-300 font-mono font-semibold">
+                        {item.qty_order ?? "-"}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
@@ -1337,7 +1341,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={5}
+                        colSpan={6}
                       >
                         Tidak ada FO Outstanding.
                       </td>
@@ -1402,6 +1406,16 @@ export default function ProductionPipelinePage() {
                           {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
+                      <div className="text-slate-500 flex items-center gap-1.5">
+                        <Palette size={13} className="text-slate-400" />
+                        <span>Qty Order</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-300">
+                        {item.qty_order ?? "-"} Pcs
+                      </span>
                     </div>
 
                     <div className="mt-3.5 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
@@ -1539,6 +1553,7 @@ export default function ProductionPipelinePage() {
                     <th className="px-5 py-3 font-medium">Deadline</th>
                     <th className="px-5 py-3 font-medium">Remaining</th>
                     <th className="px-5 py-3 font-medium">Customer</th>
+                    <th className="px-5 py-3 font-medium">Qty</th>
                     <th className="px-5 py-3 font-medium">Status</th>
                     <th className="px-5 py-3 text-right font-medium">Action</th>
                   </tr>
@@ -1548,7 +1563,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={7}
+                        colSpan={8}
                       >
                         Memuat data FO Deadline...
                       </td>
@@ -1573,6 +1588,9 @@ export default function ProductionPipelinePage() {
                         {item.customer ?? "-"}
                         {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                       </td>
+                      <td className="px-5 py-4 text-slate-300 font-mono font-semibold">
+                        {item.qty_order ?? "-"}
+                      </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
                       </td>
@@ -1593,7 +1611,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={7}
+                        colSpan={8}
                       >
                         Tidak ada FO Deadline.
                       </td>
@@ -1658,6 +1676,16 @@ export default function ProductionPipelinePage() {
                           {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
+                      <div className="text-slate-500 flex items-center gap-1.5">
+                        <Palette size={13} className="text-slate-400" />
+                        <span>Qty Order</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-300">
+                        {item.qty_order ?? "-"} Pcs
+                      </span>
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-800/60 pt-3 text-xs">
@@ -1799,6 +1827,7 @@ export default function ProductionPipelinePage() {
                     <th className="px-5 py-3 font-medium">Deadline</th>
                     <th className="px-5 py-3 font-medium">Overdue</th>
                     <th className="px-5 py-3 font-medium">Customer</th>
+                    <th className="px-5 py-3 font-medium">Qty</th>
                     <th className="px-5 py-3 font-medium">Status</th>
                     <th className="px-5 py-3 text-right font-medium">Action</th>
                   </tr>
@@ -1808,7 +1837,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={7}
+                        colSpan={8}
                       >
                         Memuat data FO Overdue...
                       </td>
@@ -1833,6 +1862,9 @@ export default function ProductionPipelinePage() {
                         {item.customer ?? "-"}
                         {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                       </td>
+                      <td className="px-5 py-4 text-slate-300 font-mono font-semibold">
+                        {item.qty_order ?? "-"}
+                      </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
                       </td>
@@ -1853,7 +1885,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={7}
+                        colSpan={8}
                       >
                         Tidak ada FO Overdue.
                       </td>
@@ -1917,6 +1949,16 @@ export default function ProductionPipelinePage() {
                           {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
+                      <div className="text-slate-500 flex items-center gap-1.5">
+                        <Palette size={13} className="text-slate-400" />
+                        <span>Qty Order</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-300">
+                        {item.qty_order ?? "-"} Pcs
+                      </span>
                     </div>
 
                     <div className="mt-3.5 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
@@ -2108,6 +2150,7 @@ export default function ProductionPipelinePage() {
                     <th className="px-5 py-3 font-medium">No FO</th>
                     <th className="px-5 py-3 font-medium">Date</th>
                     <th className="px-5 py-3 font-medium">Customer</th>
+                    <th className="px-5 py-3 font-medium">Qty</th>
                     <th className="px-5 py-3 font-medium">Status</th>
                     <th className="px-5 py-3 text-right font-medium">Action</th>
                   </tr>
@@ -2117,7 +2160,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={5}
+                        colSpan={6}
                       >
                         Memuat data FO Complete...
                       </td>
@@ -2135,6 +2178,9 @@ export default function ProductionPipelinePage() {
                       <td className="px-5 py-4 text-slate-300">
                         {item.customer ?? "-"}
                         {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
+                      </td>
+                      <td className="px-5 py-4 text-slate-300 font-mono font-semibold">
+                        {item.qty_order ?? "-"}
                       </td>
                       <td className="px-5 py-4 text-slate-300">
                         {item.status_lanjutan ?? item.status ?? "-"}
@@ -2156,7 +2202,7 @@ export default function ProductionPipelinePage() {
                     <tr>
                       <td
                         className="px-5 py-8 text-center text-slate-400"
-                        colSpan={5}
+                        colSpan={6}
                       >
                         Tidak ada FO Complete.
                       </td>
@@ -2221,6 +2267,16 @@ export default function ProductionPipelinePage() {
                           {renderPaymentStatus(item.uang_muka, item.sisa_tagihan)}
                         </div>
                       </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
+                      <div className="text-slate-500 flex items-center gap-1.5">
+                        <Palette size={13} className="text-slate-400" />
+                        <span>Qty Order</span>
+                      </div>
+                      <span className="font-mono font-bold text-slate-300">
+                        {item.qty_order ?? "-"} Pcs
+                      </span>
                     </div>
 
                     <div className="mt-3.5 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">

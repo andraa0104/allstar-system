@@ -52,6 +52,7 @@ export type FoOutstandingRow = {
   no_fo: string;
   doc_date: string | null;
   customer: string | null;
+  qty_order?: number | null;
   status?: string | null;
   status_lanjutan?: string | null;
   datetime_lanjutan?: string | null;
