@@ -45,7 +45,7 @@ export async function GET(request: Request) {
         TRIM(k.no_fo) AS no_fo,
         k.order_date AS doc_date,
         k.customer AS customer,
-        c.qty_order AS qty_order,
+        k.qty_order AS qty_order,
         k.ket_status AS status_lanjutan,
         k.order_date AS latest_datetime_lanjutan,
         k.deadline_date AS deadline_date,
@@ -72,7 +72,6 @@ export async function GET(request: Request) {
         k.Final_Cust AS Final_Cust,
         NULL AS username
       FROM tb_kdfo k
-      LEFT JOIN tb_control c ON TRIM(k.no_fo) = TRIM(c.no_fo)
       WHERE k.no_fo IS NOT NULL AND TRIM(k.no_fo) <> ''
     `;
 
