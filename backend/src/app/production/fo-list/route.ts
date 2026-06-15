@@ -202,26 +202,22 @@ export async function GET(request: Request) {
 
     const [sumRows] = await pool.execute<any[]>(
       `SELECT 
-        (
-          SELECT COALESCE(SUM(d.qty), 0)
-          FROM tb_kdfodetail d
-          WHERE TRIM(d.no_fo) IN (
-            SELECT unique_fo.no_fo 
-            FROM (${uniqueFoSql}) AS unique_fo
-            WHERE ${filterWhereClause}
-          ) AND d.produk LIKE '%SETELAN%'
-        ) AS total_stel,
-        (
-          SELECT COALESCE(SUM(unique_fo.qty_order), 0)
-          FROM (${uniqueFoSql}) AS unique_fo
-          WHERE ${filterWhereClause}
-        ) AS total_qty`,
+        COALESCE(SUM(unique_fo.qty_order), 0) AS total_qty,
+        COALESCE(SUM(detail.stel_qty), 0) AS total_stel
+       FROM (${uniqueFoSql}) AS unique_fo
+       LEFT JOIN (
+         SELECT TRIM(no_fo) AS no_fo, SUM(qty) AS stel_qty
+         FROM tb_kdfodetail
+         WHERE produk LIKE '%SETELAN%'
+         GROUP BY TRIM(no_fo)
+       ) AS detail ON unique_fo.no_fo = detail.no_fo
+       WHERE ${filterWhereClause}`,
       params,
     );
 
     const total = Number(countRows[0]?.total ?? 0);
-    const totalStel = Number(sumRows[0]?.total_stel ?? 0);
     const totalQty = Number(sumRows[0]?.total_qty ?? 0);
+    const totalStel = Number(sumRows[0]?.total_stel ?? 0);
     const totalPcs = Math.max(0, totalQty - totalStel);
     const paginationSql = limit ? `LIMIT ${limit} OFFSET ${offset}` : "";
     const [items] = await pool.execute<FoListRow[]>(
