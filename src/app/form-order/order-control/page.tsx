@@ -1215,7 +1215,7 @@ export default function ProductionPipelinePage() {
           <p>
             {foListTable.isFetching
               ? "Memperbarui data..."
-              : `Menampilkan ${foListTable.data?.items?.length ?? 0} dari total ${foListTable.data?.count ?? 0} data (${foListTable.data?.totalStel?.toLocaleString("id-ID") ?? 0} Stel, ${foListTable.data?.totalPcs?.toLocaleString("id-ID") ?? 0} Pcs, Total Qty: ${foListTable.data?.totalQty?.toLocaleString("id-ID") ?? 0} Pcs). Halaman ${foListTable.data?.page ?? foListPage} dari ${foListTable.data?.totalPages ?? 1}`}
+              : `Menampilkan ${foListTable.data?.items?.length ?? 0} dari total ${foListTable.data?.count ?? 0} data. Halaman ${foListTable.data?.page ?? foListPage} dari ${foListTable.data?.totalPages ?? 1}`}
           </p>
           <div className="flex gap-2">
             <button
