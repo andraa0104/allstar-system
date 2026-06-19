@@ -425,5 +425,11 @@ export const api = {
       method: "POST",
     });
   },
+
+  getSalesChart(range: string) {
+    return apiFetch<{ data: Array<{ date_label: string; total: number; omset: number }> }>(
+      `/dashboard/sales-chart?range=${range}`
+    );
+  },
 };
 

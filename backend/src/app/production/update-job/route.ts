@@ -527,13 +527,60 @@ export async function POST(request: Request) {
         if (formattedPhone.length >= 10) {
           let message = "";
           if (cmbstatus === "Selesai Packing, Siap diAmbil") {
+            const [detailRows] = await connection.execute<RowDataPacket[]>(
+              "SELECT produk, qty FROM tb_kdfodetail WHERE TRIM(no_fo) = TRIM(?)",
+              [no_fo]
+            );
+
+            let totalPcs = 0;
+            let totalStel = 0;
+            const detailSummary: Record<string, number> = {};
+
+            for (const row of detailRows) {
+              const prodName = row.produk ? String(row.produk).trim() : "PRODUK LAINNYA";
+              const qty = Number(row.qty) || 0;
+              const isStel = prodName.toUpperCase().includes("SETELAN");
+
+              if (isStel) {
+                totalStel += qty;
+              } else {
+                totalPcs += qty;
+              }
+
+              if (!detailSummary[prodName]) {
+                detailSummary[prodName] = 0;
+              }
+              detailSummary[prodName] += qty;
+            }
+
+            const itemLines = [];
+            for (const [prod, qty] of Object.entries(detailSummary)) {
+              const isStel = prod.toUpperCase().includes("SETELAN");
+              itemLines.push(`  - ${prod}: ${qty} ${isStel ? "stel" : "pcs"}`);
+            }
+            const detailOrderText = itemLines.length > 0 ? itemLines.join("\n") : "  - (Tidak ada detail)";
+
+            let qtyUmumText = "";
+            if (totalPcs > 0 && totalStel > 0) {
+              qtyUmumText = `${totalPcs} pcs dan ${totalStel} stel`;
+            } else if (totalPcs > 0) {
+              qtyUmumText = `${totalPcs} pcs`;
+            } else if (totalStel > 0) {
+              qtyUmumText = `${totalStel} stel`;
+            } else {
+              qtyUmumText = `${fo.qty_order || 0} pcs/stel`;
+            }
+
             message = `Halo kak *${customer}* 🎉
 
 Dengan senang hati kami informasikan bahwa pesanan jerseynya telah selesai dikerjakan dengan hasil yang memuaskan dan siap untuk Anda ambil. ✨
 
 📋 *DETAIL PESANAN*
 ✅ Nomor Form Order (FO): ${no_fo}
-✅ Pengambilan: Kapan saja sesuai jam operasional
+✅ Pesanan:
+${detailOrderText}
+✅ Total Qty: ${qtyUmumText}
+✅ Pengambilan: Kapan saja sesuai jam operasional (jam operasional: 08.00 - 22.00 WITA, kecuali hari libur: idul fitri, idul adha, natal, dan tahun baru)
 ✅ Lokasi: https://maps.app.goo.gl/NbhMbU7j1nRqUmCw8
 
 🎁 *PENAWARAN SPESIAL UNTUK ANDA*

@@ -1,5 +1,6 @@
 import { Activity, Archive, ClipboardList, Timer } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { SalesChart } from "@/components/dashboard/sales-chart";
 
 const stats = [
   { label: "Pending Inquiries", value: "-", icon: ClipboardList },
@@ -13,7 +14,7 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title="Dashboard"
-        description="Placeholder analitik untuk ringkasan performa produksi AllStar."
+        description="Ringkasan performa produksi AllStar."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -36,13 +37,9 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <section className="mt-5 rounded-lg border border-slate-800 bg-slate-900/70 p-6">
-        <h2 className="text-base font-semibold text-white">Analytics Roadmap</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-          Area ini disiapkan untuk grafik throughput produksi, keterlambatan FO,
-          dan kapasitas tim setelah endpoint analitik tersedia di backend.
-        </p>
-      </section>
+      <div className="mt-5">
+        <SalesChart />
+      </div>
     </>
   );
 }
