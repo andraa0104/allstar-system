@@ -22,8 +22,8 @@ export async function GET(request: Request) {
         break;
       case "1m":
         intervalSql = "INTERVAL 1 MONTH";
-        dateFormatSql = "DATE_FORMAT(pos_date, '%Y-%m-%d') as date_label";
-        groupBySql = "DATE(pos_date)";
+        dateFormatSql = "CONCAT(YEAR(pos_date), '-W', LPAD(WEEK(pos_date, 1), 2, '0')) as date_label";
+        groupBySql = "YEAR(pos_date), WEEK(pos_date, 1)";
         break;
       case "3m":
         intervalSql = "INTERVAL 3 MONTH";
