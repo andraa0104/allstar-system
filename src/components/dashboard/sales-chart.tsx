@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -97,55 +99,93 @@ export function SalesChart() {
         </div>
       </div>
 
-      <div className="h-[250px] w-full sm:h-[300px]">
+      <div className="h-[350px] w-full sm:h-[300px]">
         {loading ? (
           <div className="flex h-full w-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
           </div>
         ) : data.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={data}
-              margin={{ top: 25, right: 10, left: -25, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis
-                dataKey="date_label"
-                stroke="#64748b"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-                dy={10}
-                minTickGap={20}
-              />
-              <YAxis
-                stroke="#64748b"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-                dx={-10}
-                width={40}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="total"
-                name="Total FO"
-                stroke="#06b6d4"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorTotal)"
-              >
-                <LabelList dataKey="total" position="top" fill="#22d3ee" fontSize={10} />
-              </Area>
-            </AreaChart>
-          </ResponsiveContainer>
+          <>
+            {/* Desktop View */}
+            <div className="hidden h-full w-full sm:block">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={data}
+                  margin={{ top: 25, right: 10, left: -25, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis
+                    dataKey="date_label"
+                    stroke="#64748b"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                    minTickGap={20}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-10}
+                    width={40}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    name="Total FO"
+                    stroke="#06b6d4"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorTotal)"
+                  >
+                    <LabelList dataKey="total" position="top" fill="#22d3ee" fontSize={10} />
+                  </Area>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Mobile/Tablet View */}
+            <div className="block h-full w-full sm:hidden">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={data}
+                  layout="vertical"
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                  <XAxis type="number" hide />
+                  <YAxis
+                    dataKey="date_label"
+                    type="category"
+                    stroke="#64748b"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    width={60}
+                  />
+                  <Tooltip cursor={{ fill: "#1e293b", opacity: 0.5 }} content={<CustomTooltip />} />
+                  <Bar
+                    dataKey="total"
+                    name="Total FO"
+                    fill="#06b6d4"
+                    radius={[0, 4, 4, 0]}
+                    barSize={16}
+                  >
+                    <LabelList dataKey="total" position="right" fill="#22d3ee" fontSize={10} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <p className="text-sm text-slate-500">Tidak ada data untuk rentang waktu ini.</p>
