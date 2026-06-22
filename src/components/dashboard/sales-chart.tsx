@@ -119,10 +119,10 @@ export function SalesChart() {
                       <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--slate-800)" vertical={false} />
                   <XAxis
                     dataKey="date_label"
-                    stroke="#64748b"
+                    stroke="var(--slate-500)"
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
@@ -130,7 +130,7 @@ export function SalesChart() {
                     minTickGap={20}
                   />
                   <YAxis
-                    stroke="#64748b"
+                    stroke="var(--slate-500)"
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
@@ -147,7 +147,7 @@ export function SalesChart() {
                     fillOpacity={1}
                     fill="url(#colorTotal)"
                   >
-                    <LabelList dataKey="total" position="top" fill="#22d3ee" fontSize={10} />
+                    <LabelList dataKey="total" position="top" fill="var(--cyan-400)" fontSize={10} />
                   </Area>
                 </AreaChart>
               </ResponsiveContainer>
@@ -161,18 +161,18 @@ export function SalesChart() {
                   layout="vertical"
                   margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--slate-800)" horizontal={false} />
                   <XAxis type="number" hide />
                   <YAxis
                     dataKey="date_label"
                     type="category"
-                    stroke="#64748b"
+                    stroke="var(--slate-500)"
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
                     width={60}
                   />
-                  <Tooltip cursor={{ fill: "#1e293b", opacity: 0.5 }} content={<CustomTooltip />} />
+                  <Tooltip cursor={{ fill: "var(--slate-800)", opacity: 0.5 }} content={<CustomTooltip />} />
                   <Bar
                     dataKey="total"
                     name="Total FO"
@@ -180,7 +180,7 @@ export function SalesChart() {
                     radius={[0, 4, 4, 0]}
                     barSize={16}
                   >
-                    <LabelList dataKey="total" position="right" fill="#22d3ee" fontSize={10} />
+                    <LabelList dataKey="total" position="right" fill="var(--cyan-400)" fontSize={10} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
