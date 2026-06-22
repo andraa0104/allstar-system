@@ -1,22 +1,152 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Default LIGHT MODE (Overrides Tailwind Slate Colors to be Light) */
+  --slate-950: #ffffff;
+  --slate-900: #f1f5f9;
+  --slate-800: #e2e8f0;
+  --slate-700: #cbd5e1;
+  --slate-600: #94a3b8;
+  --slate-500: #64748b;
+  --slate-400: #475569;
+  --slate-300: #334155;
+  --slate-200: #1e293b;
+  --slate-100: #0f172a;
+  --slate-50: #020617;
+  
+  --white-color: #0f172a; /* text-white becomes dark text */
+  --black-color: #ffffff;
+  
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  /* Accent Colors adjustments for Light Mode (Make pastels darker) */
+  --cyan-200: #0e7490; /* cyan-700 */
+  --cyan-300: #0891b2; /* cyan-600 */
+  --cyan-400: #0891b2; /* cyan-600 */
+  --cyan-500: #06b6d4; /* cyan-500 - keep as is */
+
+  --emerald-200: #15803d; /* emerald-700 */
+  --emerald-400: #16a34a; /* emerald-600 */
+  --emerald-500: #22c55e; /* emerald-500 */
+
+  --amber-200: #b45309; /* amber-700 */
+  --amber-300: #d97706; /* amber-600 */
+  --amber-400: #d97706; /* amber-600 */
+  --amber-500: #f59e0b; /* amber-500 */
+
+  --red-100: #b91c1c; /* red-700 */
+  --red-300: #dc2626; /* red-600 */
+  --red-400: #dc2626; /* red-600 */
+  --red-500: #ef4444; /* red-500 */
+
+  --rose-300: #e11d48; /* rose-600 */
+  --rose-400: #e11d48; /* rose-600 */
+  --rose-500: #f43f5e; /* rose-500 */
+
+  --blue-200: #1e40af; /* blue-800 */
+  --blue-300: #1d4ed8; /* blue-700 */
+  --blue-400: #2563eb; /* blue-600 */
+  --blue-500: #3b82f6; /* blue-500 */
+}
+
+:root.dark {
+  /* Restore original DARK MODE */
+  --slate-950: #020617;
+  --slate-900: #0f172a;
+  --slate-800: #1e293b;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748b;
+  --slate-400: #94a3b8;
+  --slate-300: #cbd5e1;
+  --slate-200: #e2e8f0;
+  --slate-100: #f1f5f9;
+  --slate-50: #f8fafc;
+  
+  --white-color: #ffffff;
+  --black-color: #000000;
+  
+  --background: #020617;
+  --foreground: #f8fafc;
+
+  --cyan-200: #a5f3fc;
+  --cyan-300: #67e8f9;
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+
+  --emerald-200: #a7f3d0;
+  --emerald-400: #34d399;
+  --emerald-500: #10b981;
+
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+
+  --red-100: #fee2e2;
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+
+  --rose-300: #fda4af;
+  --rose-400: #fb7185;
+  --rose-500: #f43f5e;
+
+  --blue-200: #bfdbfe;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
 }
 
 @theme inline {
+  --color-slate-950: var(--slate-950);
+  --color-slate-900: var(--slate-900);
+  --color-slate-800: var(--slate-800);
+  --color-slate-700: var(--slate-700);
+  --color-slate-600: var(--slate-600);
+  --color-slate-500: var(--slate-500);
+  --color-slate-400: var(--slate-400);
+  --color-slate-300: var(--slate-300);
+  --color-slate-200: var(--slate-200);
+  --color-slate-100: var(--slate-100);
+  --color-slate-50: var(--slate-50);
+  
+  --color-white: var(--white-color);
+  --color-black: var(--black-color);
+  
+  --color-cyan-200: var(--cyan-200);
+  --color-cyan-300: var(--cyan-300);
+  --color-cyan-400: var(--cyan-400);
+  --color-cyan-500: var(--cyan-500);
+
+  --color-emerald-200: var(--emerald-200);
+  --color-emerald-400: var(--emerald-400);
+  --color-emerald-500: var(--emerald-500);
+
+  --color-amber-200: var(--amber-200);
+  --color-amber-300: var(--amber-300);
+  --color-amber-400: var(--amber-400);
+  --color-amber-500: var(--amber-500);
+
+  --color-red-100: var(--red-100);
+  --color-red-300: var(--red-300);
+  --color-red-400: var(--red-400);
+  --color-red-500: var(--red-500);
+
+  --color-rose-300: var(--rose-300);
+  --color-rose-400: var(--rose-400);
+  --color-rose-500: var(--rose-500);
+
+  --color-blue-200: var(--blue-200);
+  --color-blue-300: var(--blue-300);
+  --color-blue-400: var(--blue-400);
+  --color-blue-500: var(--blue-500);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -24,3 +154,5 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+

@@ -120,13 +120,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="flex h-16 items-center border-b border-slate-800 px-5">
           <a href="/dashboard" className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-lg bg-white p-1.5">
+            <span className="flex size-11 items-center justify-center rounded-lg bg-transparent dark:bg-[#ffffff] p-0 dark:p-1.5 overflow-hidden">
               <Image
                 src="/allstar-logo.jpg"
                 alt="AllStar logo"
                 width={38}
                 height={38}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain mix-blend-multiply dark:mix-blend-normal"
                 priority
               />
             </span>

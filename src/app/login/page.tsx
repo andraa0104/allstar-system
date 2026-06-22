@@ -33,13 +33,13 @@ export default function LoginPage() {
     <main className="flex min-h-screen bg-slate-950 text-white">
       <section className="hidden flex-1 border-r border-slate-800 bg-slate-900/40 px-10 py-12 lg:flex lg:flex-col lg:justify-between">
         <div className="flex items-center gap-3">
-          <span className="flex size-12 items-center justify-center rounded-lg bg-white p-1.5">
+          <span className="flex size-12 items-center justify-center rounded-lg bg-transparent dark:bg-[#ffffff] p-0 dark:p-1.5 overflow-hidden">
             <Image
               src="/allstar-logo.jpg"
               alt="AllStar logo"
               width={42}
               height={42}
-              className="h-full w-full object-contain"
+              className="h-full w-full object-contain mix-blend-multiply dark:mix-blend-normal"
               priority
             />
           </span>
@@ -75,13 +75,13 @@ export default function LoginPage() {
       <section className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-lg border border-slate-800 bg-slate-900/80 p-6 shadow-xl shadow-slate-950/30">
           <div className="mb-8">
-            <div className="mb-5 flex size-14 items-center justify-center rounded-lg bg-white p-2 lg:hidden">
+            <div className="mb-5 flex size-14 items-center justify-center rounded-lg bg-transparent dark:bg-[#ffffff] p-0 dark:p-2 overflow-hidden lg:hidden">
               <Image
                 src="/allstar-logo.jpg"
                 alt="AllStar logo"
                 width={48}
                 height={48}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain mix-blend-multiply dark:mix-blend-normal"
                 priority
               />
             </div>

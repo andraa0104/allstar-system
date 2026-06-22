@@ -1103,7 +1103,7 @@ export default function ProductionPipelinePage() {
                     {item.qty_order ?? "-"}
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                    <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium border ${
                       item.status_lanjutan === "Produk diterima Customer"
                         ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                         : item.status_lanjutan === "Selesai Packing, Siap diAmbil"
@@ -1156,7 +1156,7 @@ export default function ProductionPipelinePage() {
                   <span className="text-xs font-mono font-bold text-white tracking-wide block mt-0.5">{item.no_fo}</span>
                 </div>
                 <div className="flex gap-2 items-center">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium border ${
                     item.status_lanjutan === "Produk diterima Customer"
                       ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                       : item.status_lanjutan === "Selesai Packing, Siap diAmbil"
@@ -1436,7 +1436,7 @@ export default function ProductionPipelinePage() {
                         <Activity size={13} className="text-slate-400" />
                         <span>Status</span>
                       </div>
-                      <span className="inline-flex items-center rounded-full bg-amber-500/5 px-2.5 py-0.5 font-medium text-amber-400 border border-amber-500/10">
+                      <span className="inline-flex items-center rounded-md bg-amber-500/5 px-2.5 py-0.5 font-medium text-amber-400 border border-amber-500/10">
                         {item.status_lanjutan ?? item.status ?? "-"}
                       </span>
                     </div>
@@ -1717,7 +1717,7 @@ export default function ProductionPipelinePage() {
                           <Timer size={13} className="text-cyan-400/80" />
                           <span>Sisa Waktu</span>
                         </div>
-                        <span className="inline-flex items-center rounded-full bg-cyan-500/5 px-2.5 py-0.5 font-bold text-cyan-300 border border-cyan-500/15">
+                        <span className="inline-flex items-center rounded-md bg-cyan-500/5 px-2.5 py-0.5 font-bold text-cyan-300 border border-cyan-500/15">
                           {item.deadline_days ? `${item.deadline_days} Hari` : "-"}
                         </span>
                       </div>
@@ -1728,7 +1728,7 @@ export default function ProductionPipelinePage() {
                         <Activity size={13} className="text-slate-400" />
                         <span>Status</span>
                       </div>
-                      <span className="inline-flex items-center rounded-full bg-slate-950 px-2.5 py-0.5 font-medium text-slate-300 border border-slate-800">
+                      <span className="inline-flex items-center rounded-md bg-slate-950 px-2.5 py-0.5 font-medium text-slate-300 border border-slate-800">
                         {item.status_lanjutan ?? item.status ?? "-"}
                       </span>
                     </div>
@@ -1999,7 +1999,7 @@ export default function ProductionPipelinePage() {
                         <Activity size={13} className="text-slate-400" />
                         <span>Status</span>
                       </div>
-                      <span className="inline-flex items-center rounded-full bg-red-500/5 px-2.5 py-0.5 font-medium text-red-400 border border-red-500/10">
+                      <span className="inline-flex items-center rounded-md bg-red-500/5 px-2.5 py-0.5 font-medium text-red-400 border border-red-500/10">
                         {item.status_lanjutan ?? item.status ?? "-"}
                       </span>
                     </div>
@@ -2297,7 +2297,7 @@ export default function ProductionPipelinePage() {
                         <Activity size={13} className="text-slate-400" />
                         <span>Status</span>
                       </div>
-                      <span className="inline-flex items-center rounded-full bg-emerald-500/5 px-2.5 py-0.5 font-medium text-emerald-400 border border-emerald-500/10">
+                      <span className="inline-flex items-center rounded-md bg-emerald-500/5 px-2.5 py-0.5 font-medium text-emerald-400 border border-emerald-500/10">
                         {item.status_lanjutan ?? item.status ?? "-"}
                       </span>
                     </div>

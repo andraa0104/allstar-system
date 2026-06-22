@@ -6,10 +6,11 @@ import { SecuritySettings } from "@/components/settings/security-settings";
 import { UserManagement } from "@/components/settings/user-management";
 import { PrivilegeAccess } from "@/components/settings/privilege-access";
 import { WhatsAppSettings } from "@/components/settings/whatsapp-settings";
+import { AppearanceSettings } from "@/components/settings/appearance-settings";
 import { useEffect, useState } from "react";
 import { getSession } from "@/lib/session";
 import type { SessionUser } from "@/lib/types";
-import { User, KeyRound, Users, ShieldAlert, MessageSquare } from "lucide-react";
+import { User, KeyRound, Users, ShieldAlert, MessageSquare, Palette } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -69,6 +70,7 @@ export default function SettingsPage() {
   const tabs = [
     { id: "profile", label: "Detail Account", icon: User, allowed: true },
     { id: "security", label: "Change Password", icon: KeyRound, allowed: true },
+    { id: "appearance", label: "Appearance", icon: Palette, allowed: true },
     { id: "users", label: "User Management", icon: Users, allowed: isAdmin },
     { id: "privilege", label: "Privilege Access", icon: ShieldAlert, allowed: isAdmin },
     { id: "whatsapp", label: "WhatsApp Gateway", icon: MessageSquare, allowed: hasWhatsAppAccess },
@@ -109,6 +111,7 @@ export default function SettingsPage() {
       <div className="animate-fade-in py-2">
         {activeTab === "profile" && <ProfileSettings />}
         {activeTab === "security" && <SecuritySettings />}
+        {activeTab === "appearance" && <AppearanceSettings />}
         {activeTab === "users" && isAdmin && <UserManagement />}
         {activeTab === "privilege" && isAdmin && <PrivilegeAccess />}
         {activeTab === "whatsapp" && hasWhatsAppAccess && <WhatsAppSettings />}
