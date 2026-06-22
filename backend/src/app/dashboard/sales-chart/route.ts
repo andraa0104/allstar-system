@@ -60,7 +60,70 @@ export async function GET(request: Request) {
 
     const [rows] = await pool.execute<RowDataPacket[]>(query);
 
-    return jsonResponse({ data: rows }, {}, request);
+    const paddedData = [];
+    const now = new Date();
+
+    const parseRow = (r: any, defaultLabel: string) => {
+      if (r) {
+        return {
+          date_label: r.date_label,
+          total: Number(r.total || 0),
+          omset: Number(r.omset || 0),
+        };
+      }
+      return { date_label: defaultLabel, total: 0, omset: 0 };
+    };
+
+    if (range === "1y") {
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const label = `${yyyy}-${mm}`;
+        paddedData.push(parseRow(rows.find((r) => r.date_label === label), label));
+      }
+    } else if (range === "6m") {
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const label = `${yyyy}-${mm}`;
+        paddedData.push(parseRow(rows.find((r) => r.date_label === label), label));
+      }
+    } else if (range === "3m") {
+      for (let i = 2; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const label = `${yyyy}-${mm}`;
+        paddedData.push(parseRow(rows.find((r) => r.date_label === label), label));
+      }
+    } else if (range === "1w") {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const label = `${yyyy}-${mm}-${dd}`;
+        paddedData.push(parseRow(rows.find((r) => r.date_label === label), label));
+      }
+    } else if (range === "1m") {
+      // Return as-is for 1m (usually 4-5 weeks, padding weeks manually can cause mismatch with MySQL WEEK(1))
+      rows.forEach((r) => {
+        paddedData.push(parseRow(r, r.date_label));
+      });
+    } else {
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const label = `${yyyy}-${mm}-${dd}`;
+        paddedData.push(parseRow(rows.find((r) => r.date_label === label), label));
+      }
+    }
+
+    return jsonResponse({ data: paddedData }, {}, request);
   } catch (error) {
     return errorResponse(error, request);
   }
