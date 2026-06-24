@@ -184,21 +184,21 @@ function renderPaymentStatus(dpValue: number | string | null | undefined, remain
 
   if (dp === 0) {
     return (
-      <span className="ml-2 inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-400 border border-red-500/20">
+      <span className="ml-2 inline-flex items-center rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-700 dark:text-red-400 border border-red-500/20">
         Belum Bayar
       </span>
     );
   }
   if (remaining === 0) {
     return (
-      <span className="ml-2 inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-500/20">
+      <span className="ml-2 inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
         Lunas
       </span>
     );
   }
   if (dp !== remaining && dp > 0 && remaining > 0) {
     return (
-      <span className="ml-2 inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400 border border-amber-500/20">
+      <span className="ml-2 inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
         Belum Lunas
       </span>
     );
@@ -1103,12 +1103,12 @@ export default function ProductionPipelinePage() {
                     {item.qty_order ?? "-"}
                   </td>
                   <td className="px-5 py-4">
-                    <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium border ${
+                    <span className={`inline-flex items-center text-xs font-bold ${
                       item.status_lanjutan === "Produk diterima Customer"
-                        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                        ? "text-emerald-700 dark:text-emerald-400"
                         : item.status_lanjutan === "Selesai Packing, Siap diAmbil"
-                        ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
-                        : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                        ? "text-cyan-700 dark:text-cyan-400"
+                        : "text-cyan-700 dark:text-cyan-400"
                     }`}>
                       {item.status_lanjutan ?? "-"}
                     </span>
@@ -1156,12 +1156,12 @@ export default function ProductionPipelinePage() {
                   <span className="text-xs font-mono font-bold text-white tracking-wide block mt-0.5">{item.no_fo}</span>
                 </div>
                 <div className="flex gap-2 items-center">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium border ${
+                  <span className={`inline-flex items-center text-[10px] font-bold ${
                     item.status_lanjutan === "Produk diterima Customer"
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                      ? "text-emerald-700 dark:text-emerald-400"
                       : item.status_lanjutan === "Selesai Packing, Siap diAmbil"
-                      ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400"
-                      : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                      ? "text-cyan-700 dark:text-cyan-400"
+                      : "text-cyan-700 dark:text-cyan-400"
                   }`}>
                     {item.status_lanjutan ?? "-"}
                   </span>
@@ -1436,7 +1436,7 @@ export default function ProductionPipelinePage() {
                         <Activity size={13} className="text-slate-400" />
                         <span>Status</span>
                       </div>
-                      <span className="inline-flex items-center rounded-md bg-amber-500/5 px-2.5 py-0.5 font-medium text-amber-400 border border-amber-500/10">
+                      <span className="inline-flex items-center font-bold text-cyan-700 dark:text-cyan-400">
                         {item.status_lanjutan ?? item.status ?? "-"}
                       </span>
                     </div>
@@ -3113,7 +3113,7 @@ export default function ProductionPipelinePage() {
                           <div>
                             <span className="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Remaining Balance</span>
                             <span className={`mt-0.5 block text-sm font-bold ${
-                              (data.sisa_tagihan ?? 0) > 0 ? "text-amber-400" : "text-emerald-400"
+                              (data.sisa_tagihan ?? 0) > 0 ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
                             }`}>
                               {formatRupiah(data.sisa_tagihan)}
                             </span>
@@ -3175,7 +3175,7 @@ export default function ProductionPipelinePage() {
                           {/* Title & Filter Toggle Button */}
                           <div className="flex justify-between items-center border-b border-slate-800/40 pb-2">
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                              <ClipboardList size={14} className="text-cyan-400" />
+                              <ClipboardList size={14} className="text-cyan-700 dark:text-cyan-400" />
                               Daftar Item Detail
                             </span>
                             <button
