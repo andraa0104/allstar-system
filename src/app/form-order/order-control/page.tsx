@@ -933,13 +933,13 @@ export default function ProductionPipelinePage() {
               Daftar Form Order (FO)
               {!foListTable.isLoading && foListTable.data?.totalQty !== undefined && (
                 <div className="flex flex-wrap items-center gap-1.5 ml-2">
-                  <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                  <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                     {foListTable.data.totalStel?.toLocaleString("id-ID") ?? 0} Stel
                   </span>
-                  <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
+                  <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
                     {foListTable.data.totalPcs?.toLocaleString("id-ID") ?? 0} Pcs
                   </span>
-                  <span className="inline-flex items-center rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-400 border border-cyan-500/20">
+                  <span className="inline-flex items-center rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-400 border border-cyan-500/20">
                     Total: {foListTable.data.totalQty.toLocaleString("id-ID")} Qty
                   </span>
                 </div>

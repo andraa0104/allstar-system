@@ -10,7 +10,7 @@ import type { FoDetailData, MonitoringStaffRow } from "@/lib/types";
 
 const pageSizeOptions = [5, 10, 25, 50, 100, "all"] as const;
 
-function formatIndonesianDate(input: string | Date | null) {
+function formatIndonesianDate(input: string | Date | null | undefined) {
   if (!input) {
     return "-";
   }
@@ -49,7 +49,7 @@ function formatIndonesianDate(input: string | Date | null) {
   }).format(date);
 }
 
-function formatIndonesianDateTime(input: string | Date | null) {
+function formatIndonesianDateTime(input: string | Date | null | undefined) {
   if (!input) {
     return "-";
   }
@@ -192,13 +192,13 @@ export default function MonitoringStaffPage() {
               Monitoring Staff List
               {!tableQuery.isLoading && tableQuery.data && (
                 <div className="flex flex-wrap items-center gap-1.5 ml-2">
-                  <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/20">
+                  <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
                     {tableQuery.data.totalStel.toLocaleString("id-ID")} Stel
                   </span>
-                  <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
+                  <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-500/20">
                     {tableQuery.data.totalPcs.toLocaleString("id-ID")} Pcs
                   </span>
-                  <span className="inline-flex items-center rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-400 border border-cyan-500/20">
+                  <span className="inline-flex items-center rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-400 border border-cyan-500/20">
                     Total: {tableQuery.data.totalQty.toLocaleString("id-ID")} Qty
                   </span>
                 </div>
@@ -343,10 +343,10 @@ export default function MonitoringStaffPage() {
 
               {tableQuery.data?.items?.map((item) => (
                 <tr key={item.no_job} className="transition-colors border-b border-slate-800/60 hover:bg-slate-900/30 text-slate-300">
-                  <td className="px-3 py-2 font-mono font-bold tracking-wide text-cyan-400">
+                  <td className="px-3 py-2 font-mono font-bold tracking-wide text-cyan-900 dark:text-cyan-400">
                     {item.no_job}
                   </td>
-                  <td className="px-3 py-2 font-mono tracking-wide text-white">
+                  <td className="px-3 py-2 font-mono tracking-wide text-slate-700 dark:text-white">
                     {item.no_fo}
                   </td>
                   <td className="px-3 py-2 text-xs">
@@ -404,8 +404,8 @@ export default function MonitoringStaffPage() {
                 <div>
                   <span className="block text-[9px] uppercase font-bold text-slate-500 tracking-wider">No Job / No FO</span>
                   <div className="flex flex-col gap-1 mt-0.5">
-                    <span className="text-xs font-mono font-bold text-cyan-400 tracking-wide">{item.no_job}</span>
-                    <span className="text-[11px] font-mono font-bold text-white tracking-wide">{item.no_fo}</span>
+                    <span className="text-xs font-mono font-bold text-cyan-900 dark:text-cyan-400 tracking-wide">{item.no_job}</span>
+                    <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-white tracking-wide">{item.no_fo}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 items-center">
