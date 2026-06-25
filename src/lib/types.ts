@@ -224,3 +224,25 @@ export type UserPermissionResponse = {
   permissions: Record<string, Record<string, boolean>>;
 };
 
+export type MonitoringStaffRow = {
+  no_job: string;
+  no_fo: string;
+  order_date: string | null;
+  customer: string | null;
+  qty_order: number | null;
+  nama_pegawai: string | null;
+  pcs_count: number;
+  stel_count: number;
+};
+
+export type MonitoringStaffResponse = {
+  count: number;
+  totalQty: number;
+  totalPcs: number;
+  totalStel: number;
+  items: MonitoringStaffRow[];
+  page: number;
+  limit: number | "all";
+  totalPages: number;
+};
+

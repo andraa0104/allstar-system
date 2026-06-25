@@ -8,6 +8,7 @@ export const navigation = [
     children: [
       { label: "Order Control", href: "/form-order/order-control" },
       { label: "Order Job", href: "/form-order/order-job" },
+      { label: "Monitoring Staff", href: "/form-order/monitoring-staff" },
     ],
   },
   { label: "System Settings", href: "/settings", icon: Settings },

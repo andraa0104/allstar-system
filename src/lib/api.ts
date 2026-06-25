@@ -15,7 +15,8 @@ import type {
   ProfilePayload,
   SessionUser,
   AdminAccountsResponse,
-  UserPermissionResponse
+  UserPermissionResponse,
+  MonitoringStaffResponse
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -285,6 +286,31 @@ export const api = {
     const query = searchParams.toString();
     return apiFetch<FoListResponse>(
       `/production/fo-list${query ? `?${query}` : ""}`,
+    );
+  },
+
+  getMonitoringStaff(params?: {
+    page?: number;
+    limit?: number | "all";
+    nama_pegawai?: string;
+    date_filter?: string;
+    start_date?: string;
+    end_date?: string;
+    search?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.nama_pegawai) searchParams.set("nama_pegawai", params.nama_pegawai);
+    if (params?.date_filter) searchParams.set("date_filter", params.date_filter);
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+    if (params?.search) searchParams.set("search", params.search);
+
+    const query = searchParams.toString();
+    return apiFetch<MonitoringStaffResponse>(
+      `/production/monitoring-staff${query ? `?${query}` : ""}`
     );
   },
 
