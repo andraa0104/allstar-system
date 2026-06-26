@@ -233,6 +233,7 @@ export type MonitoringStaffRow = {
   nama_pegawai: string | null;
   pcs_count: number;
   stel_count: number;
+  datetime_lanjutan?: string | null;
 };
 
 export type MonitoringStaffResponse = {

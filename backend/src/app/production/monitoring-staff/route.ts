@@ -18,6 +18,7 @@ type MonitoringStaffRow = RowDataPacket & {
   nama_pegawai: string | null;
   pcs_count: number;
   stel_count: number;
+  datetime_lanjutan: Date | string | null;
 };
 
 export async function GET(request: Request) {
@@ -45,9 +46,9 @@ export async function GET(request: Request) {
     }
 
     if (dateFilter === "today") {
-      filterWhereClause += " AND DATE(c.order_date) = CURDATE()";
+      filterWhereClause += " AND DATE(c.datetime_lanjutan) = CURDATE()";
     } else if (dateFilter === "range" && startDate && endDate) {
-      filterWhereClause += " AND DATE(c.order_date) >= :start_date AND DATE(c.order_date) <= :end_date";
+      filterWhereClause += " AND DATE(c.datetime_lanjutan) >= :start_date AND DATE(c.datetime_lanjutan) <= :end_date";
       params.start_date = startDate;
       params.end_date = endDate;
     }
@@ -65,8 +66,15 @@ export async function GET(request: Request) {
         c.doc_date,
         c.customer,
         c.qty_order,
-        c.nama_pegawai
+        c.nama_pegawai,
+        c.datetime_lanjutan
       FROM tb_control c
+      INNER JOIN (
+        SELECT MAX(id) AS max_id
+        FROM tb_control
+        WHERE no_fo IS NOT NULL AND TRIM(no_fo) <> ''
+        GROUP BY TRIM(no_fo), TRIM(nama_pegawai)
+      ) mx ON c.id = mx.max_id
       WHERE ${filterWhereClause}
     `;
 
@@ -104,6 +112,7 @@ export async function GET(request: Request) {
         base.customer,
         base.qty_order,
         base.nama_pegawai,
+        base.datetime_lanjutan,
         COALESCE(detail.stel_qty, 0) AS stel_count,
         GREATEST(0, COALESCE(base.qty_order, 0) - COALESCE(detail.stel_qty, 0)) AS pcs_count
        FROM (${uniqueJobSql}) AS base

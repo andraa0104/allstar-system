@@ -594,6 +594,7 @@ export default function MonitoringStaffPage() {
                 <th className="px-3 py-2">No Job</th>
                 <th className="px-3 py-2">No FO</th>
                 <th className="px-3 py-2">Order Date</th>
+                <th className="px-3 py-2">Date Job</th>
                 <th className="px-3 py-2">Pegawai</th>
                 <th className="px-3 py-2">Customer</th>
                 <th className="px-3 py-2">Qty</th>
@@ -603,13 +604,13 @@ export default function MonitoringStaffPage() {
             <tbody className="divide-y divide-slate-800/60">
               {namaPegawai === "" ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-10 text-center text-xs text-slate-400 italic">
+                  <td colSpan={8} className="px-3 py-10 text-center text-xs text-slate-400 italic">
                     Silakan pilih pegawai terlebih dahulu untuk menampilkan data.
                   </td>
                 </tr>
               ) : tableQuery.isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-6 text-center text-xs text-slate-400 italic">
+                  <td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-400 italic">
                     Memuat data monitoring staff...
                   </td>
                 </tr>
@@ -617,7 +618,7 @@ export default function MonitoringStaffPage() {
 
               {namaPegawai !== "" && !tableQuery.isLoading && !tableQuery.data?.items?.length ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-6 text-center text-xs text-slate-400 italic">
+                  <td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-400 italic">
                     Tidak ada data yang cocok dengan kriteria.
                   </td>
                 </tr>
@@ -633,6 +634,9 @@ export default function MonitoringStaffPage() {
                   </td>
                   <td className="px-3 py-2 text-xs">
                     {formatIndonesianDate(item.order_date)}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-cyan-500 font-semibold">
+                    {formatIndonesianDateTime(item.datetime_lanjutan)}
                   </td>
                   <td className="px-3 py-2 font-semibold">
                     {item.nama_pegawai}
@@ -713,10 +717,14 @@ export default function MonitoringStaffPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-slate-800/40">
+              <div className="grid grid-cols-3 gap-3 pt-2.5 border-t border-slate-800/40">
                 <div>
                   <span className="block text-[9px] uppercase font-semibold text-slate-500">Order Date</span>
                   <span className="text-[11px] text-slate-300 block mt-0.5 leading-relaxed">{formatIndonesianDate(item.order_date)}</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] uppercase font-semibold text-slate-500">Date Job</span>
+                  <span className="text-[11px] text-cyan-500 font-semibold block mt-0.5 leading-relaxed">{formatIndonesianDateTime(item.datetime_lanjutan)}</span>
                 </div>
                 <div>
                   <span className="block text-[9px] uppercase font-semibold text-slate-500">Qty Order</span>
