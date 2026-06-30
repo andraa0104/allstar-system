@@ -483,6 +483,9 @@ export default function MonitoringStaffPage() {
                   <span className="inline-flex items-center rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-400 border border-cyan-500/20">
                     Total: {tableQuery.data.totalQty.toLocaleString("id-ID")} Qty
                   </span>
+                  <span className="inline-flex items-center rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-800 dark:bg-purple-500/20 dark:border-purple-500/30 dark:text-purple-400 border border-purple-300">
+                    Total: {tableQuery.data.count.toLocaleString("id-ID")} FO
+                  </span>
                 </div>
               )}
             </h2>
@@ -626,10 +629,10 @@ export default function MonitoringStaffPage() {
 
               {tableQuery.data?.items?.map((item) => (
                 <tr key={item.no_job} className="transition-colors border-b border-slate-800/60 hover:bg-slate-900/30 text-slate-300">
-                  <td className="px-3 py-2 font-mono font-bold tracking-wide text-slate-800 dark:text-cyan-400">
+                  <td className="px-3 py-2 font-mono font-bold tracking-wide text-cyan-500 dark:text-cyan-400">
                     {item.no_job}
                   </td>
-                  <td className="px-3 py-2 font-mono tracking-wide text-slate-700 dark:text-white">
+                  <td className="px-3 py-2 font-mono tracking-wide text-slate-600 dark:text-slate-400">
                     {item.no_fo}
                   </td>
                   <td className="px-3 py-2 text-xs">
@@ -690,8 +693,8 @@ export default function MonitoringStaffPage() {
                 <div>
                   <span className="block text-[9px] uppercase font-bold text-slate-500 tracking-wider">No Job / No FO</span>
                   <div className="flex flex-col gap-1 mt-0.5">
-                    <span className="text-xs font-mono font-bold text-slate-800 dark:text-cyan-400 tracking-wide">{item.no_job}</span>
-                    <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-white tracking-wide">{item.no_fo}</span>
+                    <span className="text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400 tracking-wide">{item.no_job}</span>
+                    <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-400 tracking-wide">{item.no_fo}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 items-center">
