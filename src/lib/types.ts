@@ -247,3 +247,41 @@ export type MonitoringStaffResponse = {
   totalPages: number;
 };
 
+export type Employee = {
+  id: number;
+  id_karyawan: string;
+  nm_karyawan: string;
+  dept: string;
+  jabatan: string;
+};
+
+export type EmployeeDepartmentCounts = {
+  OFFICE: number;
+  MARKETING: number;
+  PRODUKSI: number;
+  TOTAL: number;
+};
+
+export type EmployeeListResponse = {
+  items: Employee[];
+  departmentCounts: EmployeeDepartmentCounts;
+  totalCount: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
+
+export type CreateEmployeePayload = {
+  nm_karyawan: string;
+  dept: string;
+  jabatan: string;
+};
+
+export type UpdateEmployeePayload = {
+  id_karyawan: string;
+  nm_karyawan: string;
+  dept: string;
+  jabatan: string;
+};
+
+

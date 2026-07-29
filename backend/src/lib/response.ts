@@ -52,20 +52,43 @@ export function emptyResponse(init: ResponseInit = {}, request?: Request) {
 
 export function errorResponse(error: unknown, request: Request) {
   if (error instanceof ZodError) {
+    const formattedErrors = error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ");
     return jsonResponse(
-      { message: "Validasi request gagal.", errors: error.issues },
+      {
+        message: `Validasi request gagal: ${formattedErrors}`,
+        errors: error.issues,
+        details: JSON.stringify(error.issues, null, 2),
+      },
       { status: 422 },
       request,
     );
   }
 
   if (error instanceof HttpError) {
-    return jsonResponse({ message: error.message }, { status: error.status }, request);
+    return jsonResponse({ message: error.message, details: error.message }, { status: error.status }, request);
   }
 
   console.error(error);
+  const errObj = error as any;
+  const sqlState = errObj?.sqlState || null;
+  const code = errObj?.code || null;
+  const sqlMessage = errObj?.sqlMessage || null;
+  const message = errObj?.message || "Terjadi kesalahan server.";
+
+  const detailsParts = [];
+  if (code) detailsParts.push(`Code: ${code}`);
+  if (sqlState) detailsParts.push(`SQL State: ${sqlState}`);
+  if (sqlMessage) detailsParts.push(`SQL Message: ${sqlMessage}`);
+  if (errObj?.stack) detailsParts.push(`Stack: ${errObj.stack}`);
+
   return jsonResponse(
-    { message: "Terjadi kesalahan server." },
+    {
+      message,
+      details: detailsParts.length > 0 ? detailsParts.join(" | ") : String(error),
+      sqlState,
+      code,
+      sqlMessage,
+    },
     { status: 500 },
     request,
   );

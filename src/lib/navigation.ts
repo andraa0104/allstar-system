@@ -1,4 +1,4 @@
-import { Factory, Gauge, Settings } from "lucide-react";
+import { Factory, Gauge, Settings, Users } from "lucide-react";
 
 export const navigation = [
   { label: "Dashboard", href: "/dashboard", icon: Gauge },
@@ -11,6 +11,14 @@ export const navigation = [
       { label: "Monitoring Staff", href: "/form-order/monitoring-staff" },
     ],
   },
+  {
+    label: "Employee",
+    icon: Users,
+    children: [
+      { label: "Management Employee", href: "/employee/management" },
+    ],
+  },
   { label: "System Settings", href: "/settings", icon: Settings },
 ];
+
 

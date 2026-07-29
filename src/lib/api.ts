@@ -16,7 +16,10 @@ import type {
   SessionUser,
   AdminAccountsResponse,
   UserPermissionResponse,
-  MonitoringStaffResponse
+  MonitoringStaffResponse,
+  EmployeeListResponse,
+  CreateEmployeePayload,
+  UpdateEmployeePayload,
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -27,11 +30,26 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 
 export class ApiError extends Error {
   status: number;
+  details?: string;
+  sqlState?: string;
+  code?: string;
+  sqlMessage?: string;
 
-  constructor(message: string, status: number) {
+  constructor(
+    message: string,
+    status: number,
+    details?: string,
+    sqlState?: string,
+    code?: string,
+    sqlMessage?: string
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.details = details;
+    this.sqlState = sqlState;
+    this.code = code;
+    this.sqlMessage = sqlMessage;
   }
 }
 
@@ -49,12 +67,24 @@ async function parseResponse<T>(response: Response): Promise<T> {
   const payload = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const message =
-      typeof payload === "object" && payload !== null && "message" in payload
-        ? String(payload.message)
-        : `Request gagal dengan status ${response.status}`;
+    let message = `Request gagal dengan status ${response.status}`;
+    let details: string | undefined;
+    let sqlState: string | undefined;
+    let code: string | undefined;
+    let sqlMessage: string | undefined;
 
-    throw new ApiError(message, response.status);
+    if (typeof payload === "object" && payload !== null) {
+      const p = payload as Record<string, any>;
+      if (p.message) message = String(p.message);
+      if (p.details) details = String(p.details);
+      if (p.sqlState) sqlState = String(p.sqlState);
+      if (p.code) code = String(p.code);
+      if (p.sqlMessage) sqlMessage = String(p.sqlMessage);
+    } else if (typeof payload === "string") {
+      details = payload;
+    }
+
+    throw new ApiError(message, response.status, details, sqlState, code, sqlMessage);
   }
 
   return payload as T;
@@ -456,6 +486,31 @@ export const api = {
     return apiFetch<{ data: Array<{ date_label: string; total: number; omset: number }> }>(
       `/dashboard/sales-chart?range=${range}`
     );
+  },
+
+  getEmployees(params?: { page?: number; limit?: number | "all"; search?: string; dept?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.dept) searchParams.set("dept", params.dept);
+
+    const query = searchParams.toString();
+    return apiFetch<EmployeeListResponse>(`/employee${query ? `?${query}` : ""}`);
+  },
+
+  addEmployee(payload: CreateEmployeePayload) {
+    return apiFetch<{ message: string; id_karyawan: string }>("/employee", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  updateEmployee(payload: UpdateEmployeePayload) {
+    return apiFetch<{ message: string }>("/employee", {
+      method: "PUT",
+      body: payload,
+    });
   },
 };
 
