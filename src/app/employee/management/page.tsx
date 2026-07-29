@@ -72,14 +72,35 @@ export default function EmployeeManagementPage() {
   const isSuperAdmin = user?.role?.toLowerCase() === "admin";
   const hasAccess = isSuperAdmin || !userPerms?.permissions || !!userPerms?.permissions?.["Management Employee"]?.V;
 
+  // Main Table Search & Debounced Search
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
   // Main Table State
-  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<number>(5);
 
-  // Department Modal State
+  // Department Modal Search & Debounced Search
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
-  const [deptSearch, setDeptSearch] = useState("");
+  const [deptSearchInput, setDeptSearchInput] = useState("");
+  const [debouncedDeptSearch, setDebouncedDeptSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedDeptSearch(deptSearchInput);
+      setDeptPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [deptSearchInput]);
+
   const [deptLimit, setDeptLimit] = useState<number>(5);
   const [deptPage, setDeptPage] = useState(1);
 
@@ -97,18 +118,22 @@ export default function EmployeeManagementPage() {
   });
   const [copiedDetails, setCopiedDetails] = useState(false);
 
-  // Main Table Query
-  const { data: employeeData, isLoading: isMainLoading, isError: isMainError } = useQuery({
-    queryKey: ["employees", page, limit, search],
-    queryFn: () => api.getEmployees({ page, limit, search }),
+  // Main Table Query with cache & placeholderData
+  const { data: employeeData, isLoading: isMainLoading, isError: isMainError, isFetching: isMainFetching } = useQuery({
+    queryKey: ["employees", page, limit, debouncedSearch],
+    queryFn: () => api.getEmployees({ page, limit, search: debouncedSearch }),
     enabled: hasAccess,
+    staleTime: 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
-  // Department Modal Query (with pagination & search)
-  const { data: deptData, isLoading: isDeptLoading } = useQuery({
-    queryKey: ["employees-dept", selectedDept, deptPage, deptLimit, deptSearch],
-    queryFn: () => api.getEmployees({ page: deptPage, limit: deptLimit, search: deptSearch, dept: selectedDept || "" }),
+  // Department Modal Query with cache & placeholderData
+  const { data: deptData, isLoading: isDeptLoading, isFetching: isDeptFetching } = useQuery({
+    queryKey: ["employees-dept", selectedDept, deptPage, deptLimit, debouncedDeptSearch],
+    queryFn: () => api.getEmployees({ page: deptPage, limit: deptLimit, search: debouncedDeptSearch, dept: selectedDept || "" }),
     enabled: !!selectedDept,
+    staleTime: 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   // Add Mutation
@@ -161,7 +186,8 @@ export default function EmployeeManagementPage() {
 
   const handleOpenDept = (dept: string) => {
     setSelectedDept(dept);
-    setDeptSearch("");
+    setDeptSearchInput("");
+    setDebouncedDeptSearch("");
     setDeptLimit(5);
     setDeptPage(1);
   };
@@ -277,8 +303,8 @@ export default function EmployeeManagementPage() {
               <input
                 type="text"
                 placeholder="Cari NIP atau nama..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className={`${inputCls} pl-8`}
               />
             </div>
@@ -446,8 +472,8 @@ export default function EmployeeManagementPage() {
                 <input
                   type="text"
                   placeholder="Cari NIP atau nama..."
-                  value={deptSearch}
-                  onChange={(e) => { setDeptSearch(e.target.value); setDeptPage(1); }}
+                  value={deptSearchInput}
+                  onChange={(e) => setDeptSearchInput(e.target.value)}
                   className={`${inputCls} pl-8`}
                 />
               </div>

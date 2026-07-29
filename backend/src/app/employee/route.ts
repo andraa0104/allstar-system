@@ -41,10 +41,39 @@ export async function GET(request: Request) {
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const offset = (page - 1) * limit;
 
-    // Get Department Counts
-    const [deptRows] = await pool.execute<DeptCountRow[]>(
+    let whereClause = " WHERE 1=1";
+    const params: Record<string, any> = {};
+
+    if (search) {
+      whereClause += " AND (id_karyawan LIKE :search OR nm_karyawan LIKE :search)";
+      params.search = `%${search}%`;
+    }
+
+    if (dept) {
+      whereClause += " AND dept = :dept";
+      params.dept = dept;
+    }
+
+    // Execute queries in parallel for maximum speed
+    const deptCountsPromise = pool.execute<DeptCountRow[]>(
       `SELECT dept, COUNT(*) as total FROM tb_karyawan GROUP BY dept`
     );
+
+    const totalCountPromise = pool.execute<RowDataPacket[]>(
+      `SELECT COUNT(*) as count FROM tb_karyawan${whereClause}`,
+      params
+    );
+
+    const rowsPromise = pool.execute<EmployeeRow[]>(
+      `SELECT id, id_karyawan, nm_karyawan, dept, jabatan FROM tb_karyawan${whereClause} ORDER BY id ASC LIMIT ${offset}, ${limit}`,
+      params
+    );
+
+    const [[deptRows], [countRows], [rows]] = await Promise.all([
+      deptCountsPromise,
+      totalCountPromise,
+      rowsPromise,
+    ]);
 
     const departmentCounts: Record<string, number> = {
       OFFICE: 0,
@@ -59,35 +88,7 @@ export async function GET(request: Request) {
       departmentCounts.TOTAL += Number(r.total);
     });
 
-    // Build Query for List
-    let query = `
-      SELECT id, id_karyawan, nm_karyawan, dept, jabatan
-      FROM tb_karyawan
-      WHERE 1=1
-    `;
-    const params: Record<string, any> = {};
-
-    if (search) {
-      query += ` AND (id_karyawan LIKE :search OR nm_karyawan LIKE :search)`;
-      params.search = `%${search}%`;
-    }
-
-    if (dept) {
-      query += ` AND dept = :dept`;
-      params.dept = dept;
-    }
-
-    // Get Total Count
-    const [countRows] = await pool.execute<RowDataPacket[]>(
-      `SELECT COUNT(*) as count FROM (${query}) as temp`,
-      params
-    );
     const totalCount = countRows[0]?.count || 0;
-
-    // Apply Sorting and Pagination
-    query += ` ORDER BY id ASC LIMIT ${offset}, ${limit}`;
-
-    const [rows] = await pool.execute<EmployeeRow[]>(query, params);
 
     return jsonResponse(
       {
