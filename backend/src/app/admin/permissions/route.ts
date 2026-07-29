@@ -64,6 +64,7 @@ export async function GET(request: Request) {
         "Dashboard": { V: false, C: false, U: false, D: false },
         "Order Control": { V: false, C: false, U: false, D: false },
         "Order Job": { V: false, C: false, U: false, D: false },
+        "Management Employee": { V: false, C: false, U: false, D: false },
         "System Settings": { V: false, C: false, U: false, D: false },
         "WhatsApp Gateway": { V: false, C: false, U: false, D: false },
       };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users,
@@ -21,10 +21,12 @@ import {
   ArrowRight,
   Briefcase,
   IdCard,
+  ShieldAlert,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { api, ApiError } from "@/lib/api";
-import type { Employee } from "@/lib/types";
+import { getSession } from "@/lib/session";
+import type { Employee, SessionUser } from "@/lib/types";
 
 const DEPARTMENTS = ["OFFICE", "MARKETING", "PRODUKSI"];
 
@@ -55,6 +57,20 @@ function DeptBadge({ dept }: { dept: string }) {
 
 export default function EmployeeManagementPage() {
   const queryClient = useQueryClient();
+  const [user, setUser] = useState<SessionUser | null>(null);
+
+  useEffect(() => {
+    queueMicrotask(() => setUser(getSession()));
+  }, []);
+
+  const { data: userPerms, isLoading: isLoadingPerms } = useQuery({
+    queryKey: ["my-permissions", user?.id],
+    queryFn: () => api.getPermissions(user?.id),
+    enabled: !!user?.id,
+  });
+
+  const isSuperAdmin = user?.role?.toLowerCase() === "admin";
+  const hasAccess = isSuperAdmin || !userPerms?.permissions || !!userPerms?.permissions?.["Management Employee"]?.V;
 
   // Main Table State
   const [search, setSearch] = useState("");
@@ -85,6 +101,7 @@ export default function EmployeeManagementPage() {
   const { data: employeeData, isLoading: isMainLoading, isError: isMainError } = useQuery({
     queryKey: ["employees", page, limit, search],
     queryFn: () => api.getEmployees({ page, limit, search }),
+    enabled: hasAccess,
   });
 
   // Department Modal Query (with pagination & search)
@@ -182,6 +199,18 @@ export default function EmployeeManagementPage() {
 
   const inputCls = "h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none placeholder:text-slate-500 focus:border-cyan-400";
   const selectCls = "h-9 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400";
+
+  if (isLoadingPerms) {
+    return (
+      <div className="flex items-center justify-center p-24">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+      </div>
+    );
+  }
+
+  if (userPerms?.permissions && !hasAccess) {
+    return null;
+  }
 
   return (
     <>
