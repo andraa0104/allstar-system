@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/session";
@@ -22,7 +22,8 @@ import {
   Filter,
   ArrowRight,
   Archive,
-  Timer
+  Timer,
+  ChevronDown
 } from "lucide-react";
 import type { FoDetailData, MonitoringStaffRow } from "@/lib/types";
 
@@ -392,12 +393,43 @@ export default function MonitoringStaffPage() {
   const [detailLimit, setDetailLimit] = useState<number | "all">(5);
   const [detailPage, setDetailPage] = useState(1);
 
-  const validNames = [
-    "ALDO", "BEN", "JIHAN", "FINA", "FANI", "EGY", "IVAN", "IZAMI", "IKHA", 
-    "NOVAN", "NATRIS", "NASRIL", "PUSPA", "RISKY", "REINA", "SAFA", "SAID", 
-    "SYAHNI", "YOHAND", "KARIM-PENJAHIT", "ADI-PENJAHIT", "SANDY-PENJAHIT", 
-    "ALIF-PENJAHIT", "DIDIN-PENJAHIT"
-  ];
+  const employeesQuery = useQuery({
+    queryKey: ["employees", "all"],
+    queryFn: () => api.getEmployees({ limit: "all" }),
+    staleTime: 60 * 1000,
+  });
+
+  const [isPegawaiOpen, setIsPegawaiOpen] = useState(false);
+  const [pegawaiSearch, setPegawaiSearch] = useState("");
+  const pegawaiDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pegawaiDropdownRef.current && !pegawaiDropdownRef.current.contains(event.target as Node)) {
+        setIsPegawaiOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredEmployees = (employeesQuery.data?.items || []).filter((emp) => {
+    const term = pegawaiSearch.toLowerCase();
+    return (
+      emp.nm_karyawan.toLowerCase().includes(term) ||
+      (emp.jabatan && emp.jabatan.toLowerCase().includes(term))
+    );
+  });
+
+  const selectedEmp = employeesQuery.data?.items?.find((e) => e.nm_karyawan === namaPegawai);
+  const selectedPegawaiLabel =
+    namaPegawai === "all"
+      ? "Semua Pegawai"
+      : selectedEmp
+      ? `${selectedEmp.nm_karyawan} - ${selectedEmp.jabatan}`
+      : namaPegawai || "Pilih Pegawai";
+
+
 
   const tableQuery = useQuery({
     queryKey: ["monitoring-staff", page, limit, namaPegawai, dateFilter, startDate, endDate, search],
@@ -492,25 +524,94 @@ export default function MonitoringStaffPage() {
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end mt-4 2xl:mt-0">
-            {/* Nama Pegawai filter */}
+            {/* Nama Pegawai filter with search */}
             <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2">
               <span className="text-xs font-medium text-slate-400">Pegawai:</span>
-              <select
-                value={namaPegawai}
-                onChange={(e) => {
-                  setNamaPegawai(e.target.value);
-                  setPage(1);
-                }}
-                className="h-9 w-full md:w-40 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400"
-              >
-                <option value="" disabled>Pilih Pegawai</option>
-                <option value="all">Semua Pegawai</option>
-                {validNames.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative w-full md:w-64" ref={pegawaiDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsPegawaiOpen((prev) => !prev)}
+                  className="h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 flex items-center justify-between gap-2"
+                >
+                  <span className="truncate text-left">{selectedPegawaiLabel}</span>
+                  <ChevronDown className={`size-4 shrink-0 text-slate-400 transition-transform ${isPegawaiOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isPegawaiOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl p-2 flex flex-col gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={pegawaiSearch}
+                        onChange={(e) => setPegawaiSearch(e.target.value)}
+                        placeholder="Cari nama / jabatan..."
+                        className="h-8.5 w-full rounded-md border border-slate-800 bg-slate-950 pl-8 pr-7 text-xs text-white outline-none focus:border-cyan-500 placeholder:text-slate-500"
+                      />
+                      {pegawaiSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setPegawaiSearch("")}
+                          className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-0.5 custom-scrollbar">
+                      {("semua pegawai".includes(pegawaiSearch.toLowerCase()) || !pegawaiSearch) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNamaPegawai("all");
+                            setPage(1);
+                            setIsPegawaiOpen(false);
+                            setPegawaiSearch("");
+                          }}
+                          className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between ${
+                            namaPegawai === "all" ? "bg-cyan-500/20 text-cyan-300 font-semibold" : "text-slate-300 hover:bg-slate-800"
+                          }`}
+                        >
+                          <span>Semua Pegawai</span>
+                          {namaPegawai === "all" && <Check className="size-3.5 text-cyan-400 shrink-0" />}
+                        </button>
+                      )}
+
+                      {filteredEmployees.map((emp) => {
+                        const isSelected = namaPegawai === emp.nm_karyawan;
+                        return (
+                          <button
+                            key={emp.id_karyawan}
+                            type="button"
+                            onClick={() => {
+                              setNamaPegawai(emp.nm_karyawan);
+                              setPage(1);
+                              setIsPegawaiOpen(false);
+                              setPegawaiSearch("");
+                            }}
+                            className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between gap-2 ${
+                              isSelected ? "bg-cyan-500/20 text-cyan-300 font-semibold" : "text-slate-300 hover:bg-slate-800"
+                            }`}
+                          >
+                            <span className="truncate">
+                              {emp.nm_karyawan} <span className="text-slate-400 font-normal">- {emp.jabatan}</span>
+                            </span>
+                            {isSelected && <Check className="size-3.5 text-cyan-400 shrink-0" />}
+                          </button>
+                        );
+                      })}
+
+                      {filteredEmployees.length === 0 && !("semua pegawai".includes(pegawaiSearch.toLowerCase())) && (
+                        <div className="px-3 py-3 text-center text-xs text-slate-500">
+                          Pegawai tidak ditemukan
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Date filter */}
