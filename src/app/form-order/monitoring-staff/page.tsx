@@ -431,8 +431,28 @@ export default function MonitoringStaffPage() {
 
 
 
+  const [jobFilter, setJobFilter] = useState("all");
+
+  const controlStatusesQuery = useQuery({
+    queryKey: ["control-statuses", namaPegawai, dateFilter, startDate, endDate],
+    queryFn: () =>
+      api.getControlStatuses({
+        nama_pegawai: namaPegawai,
+        date_filter: dateFilter,
+        start_date: startDate,
+        end_date: endDate,
+      }),
+    enabled: namaPegawai !== "",
+    staleTime: 60 * 1000,
+  });
+
+  // Auto select "all" (Semua Data) whenever pegawai or date filter changes
+  useEffect(() => {
+    setJobFilter("all");
+  }, [namaPegawai, dateFilter, startDate, endDate]);
+
   const tableQuery = useQuery({
-    queryKey: ["monitoring-staff", page, limit, namaPegawai, dateFilter, startDate, endDate, search],
+    queryKey: ["monitoring-staff", page, limit, namaPegawai, dateFilter, startDate, endDate, jobFilter, search],
     queryFn: () =>
       api.getMonitoringStaff({
         page,
@@ -441,6 +461,7 @@ export default function MonitoringStaffPage() {
         date_filter: dateFilter,
         start_date: startDate,
         end_date: endDate,
+        job_filter: jobFilter,
         search,
       }),
     enabled: namaPegawai !== "",
@@ -654,6 +675,33 @@ export default function MonitoringStaffPage() {
                 />
               </div>
             )}
+
+            {/* Job filter */}
+            <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2">
+              <span className="text-xs font-medium text-slate-400">Job:</span>
+              <select
+                value={jobFilter}
+                disabled={namaPegawai === ""}
+                onChange={(e) => {
+                  setJobFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 w-full md:w-48 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {namaPegawai === "" ? (
+                  <option value="all">Pilih Pegawai dulu</option>
+                ) : (
+                  <>
+                    <option value="all">Semua Data</option>
+                    {controlStatusesQuery.data?.statuses?.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
 
             {/* Search filter */}
             <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2">

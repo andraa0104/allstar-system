@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     const startDate = url.searchParams.get("start_date")?.trim() ?? "";
     const endDate = url.searchParams.get("end_date")?.trim() ?? "";
     const search = url.searchParams.get("search")?.trim() ?? "";
+    const jobFilter = url.searchParams.get("job_filter")?.trim() ?? "";
     const rawLimit = url.searchParams.get("limit") ?? "5";
     const requestedPage = Number(url.searchParams.get("page") ?? "1");
     
@@ -51,6 +52,11 @@ export async function GET(request: Request) {
       filterWhereClause += " AND DATE(c.datetime_lanjutan) >= :start_date AND DATE(c.datetime_lanjutan) <= :end_date";
       params.start_date = startDate;
       params.end_date = endDate;
+    }
+
+    if (jobFilter && jobFilter !== "all") {
+      filterWhereClause += " AND TRIM(c.status_lanjutan) = :job_filter";
+      params.job_filter = jobFilter;
     }
 
     if (search) {

@@ -319,6 +319,24 @@ export const api = {
     );
   },
 
+  getControlStatuses(params?: {
+    nama_pegawai?: string;
+    date_filter?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.nama_pegawai) searchParams.set("nama_pegawai", params.nama_pegawai);
+    if (params?.date_filter) searchParams.set("date_filter", params.date_filter);
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+
+    const query = searchParams.toString();
+    return apiFetch<{ statuses: string[] }>(
+      `/production/control-statuses${query ? `?${query}` : ""}`
+    );
+  },
+
   getMonitoringStaff(params?: {
     page?: number;
     limit?: number | "all";
@@ -326,6 +344,7 @@ export const api = {
     date_filter?: string;
     start_date?: string;
     end_date?: string;
+    job_filter?: string;
     search?: string;
   }) {
     const searchParams = new URLSearchParams();
@@ -336,6 +355,7 @@ export const api = {
     if (params?.date_filter) searchParams.set("date_filter", params.date_filter);
     if (params?.start_date) searchParams.set("start_date", params.start_date);
     if (params?.end_date) searchParams.set("end_date", params.end_date);
+    if (params?.job_filter) searchParams.set("job_filter", params.job_filter);
     if (params?.search) searchParams.set("search", params.search);
 
     const query = searchParams.toString();
