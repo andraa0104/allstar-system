@@ -13,14 +13,17 @@ export class HttpError extends Error {
 }
 
 function corsHeaders(origin: string | null) {
-  const allowedOrigin =
-    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0] ?? "*";
+  // Safari requires exact origin echo when accessed via IP address without domain/SSL
+  const allowedOrigin = origin
+    ? origin
+    : (allowedOrigins[0] ?? "*");
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Cache-Control": "no-store",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+    "Access-Control-Allow-Credentials": "true",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
   };
 }
 
