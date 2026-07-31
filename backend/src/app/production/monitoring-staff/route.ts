@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     }
 
     if (jobFilter && jobFilter !== "all") {
-      filterWhereClause += " AND TRIM(c.status_lanjutan) = :job_filter";
+      filterWhereClause += " AND TRIM(c.jobdesk) = :job_filter";
       params.job_filter = jobFilter;
     }
 

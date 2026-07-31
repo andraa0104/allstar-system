@@ -5,8 +5,8 @@ import { emptyResponse, errorResponse, jsonResponse } from "@/lib/response";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type StatusRow = RowDataPacket & {
-  status_lanjutan: string;
+type JobdeskRow = RowDataPacket & {
+  jobdesk: string;
 };
 
 export async function GET(request: Request) {
@@ -18,10 +18,10 @@ export async function GET(request: Request) {
     const endDate = url.searchParams.get("end_date")?.trim() ?? "";
 
     if (!nama_pegawai) {
-      return jsonResponse({ statuses: [] }, {}, request);
+      return jsonResponse({ statuses: [], jobdesks: [] }, {}, request);
     }
 
-    let filterWhereClause = "c.no_fo IS NOT NULL AND TRIM(c.no_fo) <> '' AND c.status_lanjutan IS NOT NULL AND TRIM(c.status_lanjutan) <> ''";
+    let filterWhereClause = "c.no_fo IS NOT NULL AND TRIM(c.no_fo) <> '' AND c.jobdesk IS NOT NULL AND TRIM(c.jobdesk) <> ''";
     const params: any = {};
 
     if (nama_pegawai !== "all") {
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     }
 
     const sql = `
-      SELECT DISTINCT c.status_lanjutan
+      SELECT DISTINCT c.jobdesk
       FROM tb_control c
       INNER JOIN (
         SELECT MAX(id) AS max_id
@@ -47,15 +47,15 @@ export async function GET(request: Request) {
         GROUP BY TRIM(no_fo), TRIM(nama_pegawai)
       ) mx ON c.id = mx.max_id
       WHERE ${filterWhereClause}
-      ORDER BY c.status_lanjutan ASC
+      ORDER BY c.jobdesk ASC
     `;
 
-    const [rows] = await pool.execute<StatusRow[]>(sql, params);
+    const [rows] = await pool.execute<JobdeskRow[]>(sql, params);
 
-    const statuses = rows.map((r) => r.status_lanjutan.trim());
+    const jobdesks = rows.map((r) => r.jobdesk.trim());
 
     return jsonResponse(
-      { statuses },
+      { statuses: jobdesks, jobdesks },
       {},
       request
     );
