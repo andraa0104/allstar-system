@@ -962,29 +962,22 @@ export default function ProductionPipelinePage() {
                 }}
                 className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
               >
-                <option value={0}>FO ALL</option>
-                <option value={1}>FO DP - Antrian</option>
-                <option value={2}>FO DP + Non DP Antrian</option>
+                <option value={0}>FO All</option>
+                <option value={1}>FO DP Antrian Produksi</option>
+                <option value={2}>FO Outstanding Produksi</option>
                 <option value={3}>FO Belum DP</option>
-                <option value={4}>DP - Belum KLaim</option>
-                <option value={5}>Belum KLaim - FinalQC</option>
+                <option value={4}>FO DP - Belum Klaim Jahit</option>
+                <option value={5}>FO Belum Klaim Jahit - FinalQC</option>
                 <option value={6}>Proses Desain</option>
-                <option value={7}>Desain Ready</option>
-                <option value={8}>Proses Susun Layout</option>
-                <option value={9}>Layout Print Ready</option>
-                <option value={10}>Proses Persiapan Bahan Kain</option>
-                <option value={11}>Proses Printing</option>
-                <option value={12}>Ready to Press</option>
-                <option value={13}>Proses Press</option>
-                <option value={14}>Kain Ready Cutting</option>
-                <option value={15}>Proses Cutting</option>
-                <option value={16}>Ready Jahit</option>
-                <option value={17}>Proses Jahit</option>
-                <option value={18}>Ready QC</option>
-                <option value={19}>Proses QC</option>
-                <option value={20}>Ready Packing</option>
-                <option value={21}>Packing Selesai</option>
-                <option value={22}>Final Cust</option>
+                <option value={7}>Proses Layout</option>
+                <option value={8}>Proses Persiapan Bahan</option>
+                <option value={9}>Proses Printing</option>
+                <option value={10}>Proses Press Sublim</option>
+                <option value={11}>Proses Cutting Kain Sublime</option>
+                <option value={12}>Proses Jahit</option>
+                <option value={13}>Proses QC</option>
+                <option value={14}>Produk Ready to Customer</option>
+                <option value={15}>Produk Sudah di Terima Customer</option>
               </select>
             </div>
 

@@ -696,29 +696,17 @@ export default function OrderJobPage() {
   const [foListLimit, setFoListLimit] = useState<number | "all">(5);
   const [foListSearch, setFoListSearch] = useState("");
   const [foListSearchBy, setFoListSearchBy] = useState<string>("no_fo");
-  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(0);
+  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(1);
 
   useEffect(() => {
     if (session) {
       const role = session.role?.toLowerCase();
       if (role === "tukang-desain") {
         setFoListStatusCategory(6);
-      } else if (role === "tukang-layout") {
-        setFoListStatusCategory(0);
-      } else if (role === "pengawas") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-print") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-press" || role === "tukang-pressdtf") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-cutting") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-qc") {
-        setFoListStatusCategory(0);
       } else if (role === "tukang-layanics") {
-        setFoListStatusCategory(21);
+        setFoListStatusCategory(14);
       } else {
-        setFoListStatusCategory(0);
+        setFoListStatusCategory(1);
       }
     }
   }, [session]);
@@ -1132,134 +1120,34 @@ export default function OrderJobPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             {/* Kategori Status filter dropdown */}
-            {(session?.role?.toLowerCase() === "admin" ||
-              session?.role?.toLowerCase() === "tukang-qc" ||
-              session?.role?.toLowerCase() === "pengawas" ||
-              session?.role?.toLowerCase() === "tukang-layout" ||
-              session?.role?.toLowerCase() === "tukang-print" ||
-              session?.role?.toLowerCase() === "tukang-press" ||
-              session?.role?.toLowerCase() === "tukang-pressdtf" ||
-              session?.role?.toLowerCase() === "tukang-cutting" ||
-              session?.role?.toLowerCase() === "tukang-layanics") && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-400">Status:</span>
-                <select
-                  value={foListStatusCategory}
-                  onChange={(e) => {
-                    setFoListStatusCategory(Number(e.target.value));
-                    setFoListPage(1);
-                  }}
-                  className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
-                >
-                  {(() => {
-                    const role = session?.role?.toLowerCase();
-                    if (role === "tukang-cutting") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Ready Cutting, Start Cutting)</option>
-                          <option value={14}>Ready Cutting</option>
-                          <option value={15}>Start Cutting</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-pressdtf") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data</option>
-                          <option value={12}>Siap Press</option>
-                          <option value={13}>Proses Press</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-press") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Ready to Press, Proses Press)</option>
-                          <option value={12}>Ready to Press</option>
-                          <option value={13}>Proses Press</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-print") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Layout Ready, Start Print)</option>
-                          <option value={9}>Layout Ready</option>
-                          <option value={11}>Start Print</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-layout") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Desain Ready, Start Layout)</option>
-                          <option value={7}>Desain Ready</option>
-                          <option value={8}>Start Layout</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-qc") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Jahit, QC, Packing)</option>
-                          <option value={16}>Ready Jahit</option>
-                          <option value={17}>Proses Jahit</option>
-                          <option value={18}>Ready QC</option>
-                          <option value={19}>Start QC</option>
-                          <option value={20}>Ready Packing</option>
-                        </>
-                      );
-                    }
-                    if (role === "pengawas") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Print Ready, Cutting Ready, Persiapan Kain, Proses Printing)</option>
-                          <option value={9}>Layout Print Ready</option>
-                          <option value={14}>Kain Ready Cutting</option>
-                          <option value={10}>Persiapan Kain</option>
-                          <option value={11}>Proses Printing</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-layanics") {
-                      return (
-                        <>
-                          <option value={21}>Packing Selesai</option>
-                          <option value={22}>Final Cust</option>
-                        </>
-                      );
-                    }
-                    return (
-                      <>
-                        <option value={0}>FO ALL</option>
-                        <option value={1}>FO DP - Antrian</option>
-                        <option value={2}>FO DP + Non DP Antrian</option>
-                        <option value={3}>FO Belum DP</option>
-                        <option value={4}>DP - Belum KLaim</option>
-                        <option value={5}>Belum KLaim - FinalQC</option>
-                        <option value={6}>Proses Desain</option>
-                        <option value={7}>Desain Ready</option>
-                        <option value={8}>Proses Susun Layout</option>
-                        <option value={9}>Layout Print Ready</option>
-                        <option value={10}>Proses Persiapan Bahan Kain</option>
-                        <option value={11}>Proses Printing</option>
-                        <option value={12}>Ready to Press</option>
-                        <option value={13}>Proses Press</option>
-                        <option value={14}>Kain Ready Cutting</option>
-                        <option value={15}>Proses Cutting</option>
-                        <option value={16}>Ready Jahit</option>
-                        <option value={17}>Proses Jahit</option>
-                        <option value={18}>Ready QC</option>
-                        <option value={19}>Proses QC</option>
-                        <option value={20}>Ready Packing</option>
-                        <option value={21}>Packing Selesai</option>
-                        <option value={22}>Final Cust</option>
-                      </>
-                    );
-                  })()}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400">Status:</span>
+              <select
+                value={foListStatusCategory}
+                onChange={(e) => {
+                  setFoListStatusCategory(Number(e.target.value));
+                  setFoListPage(1);
+                }}
+                className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
+              >
+                <option value={0}>FO All</option>
+                  <option value={1}>FO DP Antrian Produksi</option>
+                  <option value={2}>FO Outstanding Produksi</option>
+                  <option value={3}>FO Belum DP</option>
+                  <option value={4}>FO DP - Belum Klaim Jahit</option>
+                  <option value={5}>FO Belum Klaim Jahit - FinalQC</option>
+                  <option value={6}>Proses Desain</option>
+                  <option value={7}>Proses Layout</option>
+                  <option value={8}>Proses Persiapan Bahan</option>
+                  <option value={9}>Proses Printing</option>
+                  <option value={10}>Proses Press Sublim</option>
+                  <option value={11}>Proses Cutting Kain Sublime</option>
+                  <option value={12}>Proses Jahit</option>
+                  <option value={13}>Proses QC</option>
+                  <option value={14}>Produk Ready to Customer</option>
+                  <option value={15}>Produk Sudah di Terima Customer</option>
                 </select>
               </div>
-            )}
 
             {/* Search filter dropdown */}
             <div className="flex items-center gap-2">
