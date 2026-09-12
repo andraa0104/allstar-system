@@ -197,6 +197,7 @@ export async function GET(request: Request) {
       request,
     );
   } catch (error) {
+    console.error("FO-OVERDUE ERROR:", error);
     return errorResponse(error, request);
   }
 }

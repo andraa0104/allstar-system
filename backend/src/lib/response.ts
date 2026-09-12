@@ -53,7 +53,11 @@ export function emptyResponse(init: ResponseInit = {}, request?: Request) {
 export function errorResponse(error: unknown, request: Request) {
   if (error instanceof ZodError) {
     return jsonResponse(
-      { message: "Validasi request gagal.", errors: error.issues },
+      {
+        message: "Validasi request gagal.",
+        errors: error.issues,
+        error: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
+      },
       { status: 422 },
       request,
     );
@@ -64,8 +68,21 @@ export function errorResponse(error: unknown, request: Request) {
   }
 
   console.error(error);
+
+  const err = error as any;
+  const isDev = process.env.NODE_ENV !== "production";
+
   return jsonResponse(
-    { message: "Terjadi kesalahan server." },
+    {
+      message: err?.sqlMessage || err?.message || "Terjadi kesalahan server.",
+      error: isDev ? (err?.sqlMessage || err?.message || String(error)) : undefined,
+      code: err?.code,
+      errno: err?.errno,
+      sqlState: err?.sqlState,
+      sqlMessage: err?.sqlMessage,
+      sql: isDev ? err?.sql : undefined,
+      details: isDev ? (err?.stack || String(error)) : undefined,
+    },
     { status: 500 },
     request,
   );

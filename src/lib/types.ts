@@ -246,3 +246,184 @@ export type MonitoringStaffResponse = {
   totalPages: number;
 };
 
+export type SalaryPeriodType = "hari" | "minggu" | "bulan";
+export type SalaryOperatorType = "kali" | "bagi";
+
+export type EmployeeSalaryCalculated = {
+  daily_basic: number;
+  monthly_basic: number;
+  daily_makan: number;
+  monthly_makan: number;
+  daily_transport: number;
+  monthly_transport: number;
+  daily_total: number;
+  monthly_total: number;
+};
+
+export type EmployeeSalaryConfig = {
+  id: number;
+  id_karyawan: string;
+  nm_karyawan: string;
+  dept: string;
+  jabatan: string;
+  basic_salary: number;
+  salary_period: SalaryPeriodType;
+  salary_operator: SalaryOperatorType;
+  salary_factor: number;
+  makan_nominal: number;
+  makan_period: SalaryPeriodType;
+  makan_operator: SalaryOperatorType;
+  makan_factor: number;
+  transport_nominal: number;
+  transport_period: SalaryPeriodType;
+  transport_operator: SalaryOperatorType;
+  transport_factor: number;
+  salary_notes?: string | null;
+  calculated: EmployeeSalaryCalculated;
+};
+
+export type EmployeeSalarySummary = {
+  total_employees: number;
+  total_basic_payroll: number;
+  total_makan_payroll: number;
+  total_transport_payroll: number;
+  total_monthly_payroll: number;
+};
+
+export type EmployeeSalaryResponse = {
+  count: number;
+  items: EmployeeSalaryConfig[];
+  page: number;
+  limit: number | "all";
+  totalPages: number;
+  summary: EmployeeSalarySummary;
+};
+
+export type UpdateEmployeeSalaryPayload = {
+  id: number;
+  basic_salary: number;
+  salary_period: SalaryPeriodType;
+  salary_operator: SalaryOperatorType;
+  salary_factor: number;
+  makan_nominal: number;
+  makan_period: SalaryPeriodType;
+  makan_operator: SalaryOperatorType;
+  makan_factor: number;
+  transport_nominal: number;
+  transport_period: SalaryPeriodType;
+  transport_operator: SalaryOperatorType;
+  transport_factor: number;
+  salary_notes?: string | null;
+};
+
+export type SalaryPeriodRate = {
+  basic: number;
+  makan: number;
+  transport: number;
+  total: number;
+};
+
+export type EmployeeSalaryMyBreakdown = {
+  daily: SalaryPeriodRate;
+  weekly: SalaryPeriodRate;
+  monthly: SalaryPeriodRate;
+};
+
+export type EmployeeSalaryConfigDetail = {
+  basic_salary: number;
+  salary_period: SalaryPeriodType;
+  salary_operator: SalaryOperatorType;
+  salary_factor: number;
+  makan_nominal: number;
+  makan_period: SalaryPeriodType;
+  makan_operator: SalaryOperatorType;
+  makan_factor: number;
+  transport_nominal: number;
+  transport_period: SalaryPeriodType;
+  transport_operator: SalaryOperatorType;
+  transport_factor: number;
+  salary_notes?: string | null;
+};
+
+export type MySalaryResponse = {
+  karyawan: {
+    id: number;
+    id_karyawan: string;
+    nm_karyawan: string;
+    dept: string;
+    jabatan: string;
+    config: EmployeeSalaryConfigDetail;
+    breakdown: EmployeeSalaryMyBreakdown;
+  } | null;
+  user: {
+    kd_user?: string;
+    nm_user?: string;
+    pengguna?: string;
+    tingkat?: string;
+    username?: string;
+  };
+  message?: string;
+};
+
+// ─── Wage Categories (tb_kategori_pakaian) ──────────────────────────────────
+
+export type KategoriPakaian = {
+  id: number;
+  parent_id: number | null;
+  nama: string;
+  created_at?: string;
+  updated_at?: string;
+  children?: KategoriPakaian[];
+};
+
+export type WageCategoriesResponse = {
+  items: KategoriPakaian[];
+};
+
+export type WageCategorySuggestResponse = {
+  suggestions: string[];
+};
+
+// ─── Wage Rates (tb_tarif_upah) ─────────────────────────────────────────────
+
+export type TarifUpah = {
+  id: number;
+  kategori_id: number;
+  jobdesk: string;
+  harga: number;
+  keterangan: string | null;
+  created_at?: string;
+  updated_at?: string;
+  kategori_nama?: string;
+  kategori_parent_id?: number | null;
+};
+
+export type WageRatesResponse = {
+  items: TarifUpah[];
+  jobdesk_options: string[];
+  count: number;
+};
+
+export type CreateWageCategoryPayload = {
+  parent_id?: number | null;
+  nama: string;
+};
+
+export type UpdateWageCategoryPayload = {
+  id: number;
+  nama: string;
+  parent_id?: number | null;
+};
+
+export type CreateWageRatePayload = {
+  kategori_id: number;
+  jobdesk: string;
+  harga: number;
+  keterangan?: string | null;
+};
+
+export type UpdateWageRatePayload = {
+  id: number;
+  harga: number;
+  keterangan?: string | null;
+};

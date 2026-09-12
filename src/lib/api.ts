@@ -16,7 +16,17 @@ import type {
   SessionUser,
   AdminAccountsResponse,
   UserPermissionResponse,
-  MonitoringStaffResponse
+  MonitoringStaffResponse,
+  EmployeeSalaryResponse,
+  UpdateEmployeeSalaryPayload,
+  MySalaryResponse,
+  WageCategoriesResponse,
+  WageCategorySuggestResponse,
+  WageRatesResponse,
+  CreateWageCategoryPayload,
+  UpdateWageCategoryPayload,
+  CreateWageRatePayload,
+  UpdateWageRatePayload,
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -27,11 +37,13 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 
 export class ApiError extends Error {
   status: number;
+  data?: any;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, data?: any) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -49,12 +61,16 @@ async function parseResponse<T>(response: Response): Promise<T> {
   const payload = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const message =
-      typeof payload === "object" && payload !== null && "message" in payload
-        ? String(payload.message)
-        : `Request gagal dengan status ${response.status}`;
+    let message = `Request gagal dengan status ${response.status}`;
+    if (typeof payload === "object" && payload !== null) {
+      if ("error" in payload && typeof payload.error === "string" && payload.error) {
+        message = payload.error;
+      } else if ("message" in payload && typeof payload.message === "string" && payload.message) {
+        message = payload.message;
+      }
+    }
 
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, payload);
   }
 
   return payload as T;
@@ -457,5 +473,99 @@ export const api = {
       `/dashboard/sales-chart?range=${range}`
     );
   },
-};
 
+  getEmployeeSalaries(params?: {
+    page?: number;
+    limit?: number | "all";
+    search?: string;
+    dept?: string;
+    sort_by?: string;
+    sort_order?: "asc" | "desc";
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.dept) searchParams.set("dept", params.dept);
+    if (params?.sort_by) searchParams.set("sort_by", params.sort_by);
+    if (params?.sort_order) searchParams.set("sort_order", params.sort_order);
+
+    const query = searchParams.toString();
+    return apiFetch<EmployeeSalaryResponse>(`/admin/karyawan-salary${query ? `?${query}` : ""}`);
+  },
+
+  updateEmployeeSalary(payload: UpdateEmployeeSalaryPayload) {
+    return apiFetch<{ message: string }>("/admin/karyawan-salary", {
+      method: "PUT",
+      body: payload,
+    });
+  },
+
+  getMySalary(params: { username?: string; kd_user?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params.username) searchParams.set("username", params.username);
+    if (params.kd_user) searchParams.set("kd_user", params.kd_user);
+    return apiFetch<MySalaryResponse>(`/dashboard/employee-salary?${searchParams.toString()}`);
+  },
+
+  // ─── Wage Categories ──────────────────────────────────────────────────────
+
+  getWageCategories() {
+    return apiFetch<WageCategoriesResponse>(`/admin/wage-categories`);
+  },
+
+  suggestWageCategories(q: string) {
+    return apiFetch<WageCategorySuggestResponse>(
+      `/admin/wage-categories?suggest=${encodeURIComponent(q)}`
+    );
+  },
+
+  createWageCategory(payload: CreateWageCategoryPayload) {
+    return apiFetch<{ message: string; id: number }>(`/admin/wage-categories`, {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  updateWageCategory(payload: UpdateWageCategoryPayload) {
+    return apiFetch<{ message: string }>(`/admin/wage-categories`, {
+      method: "PUT",
+      body: payload,
+    });
+  },
+
+  deleteWageCategory(id: number) {
+    return apiFetch<{ message: string }>(
+      `/admin/wage-categories?id=${id}`,
+      { method: "DELETE" }
+    );
+  },
+
+  // ─── Wage Rates ───────────────────────────────────────────────────────────
+
+  getWageRates(params?: { kategori_id?: number; jobdesk?: string; search?: string }) {
+    const sp = new URLSearchParams();
+    if (params?.kategori_id) sp.set("kategori_id", String(params.kategori_id));
+    if (params?.jobdesk) sp.set("jobdesk", params.jobdesk);
+    if (params?.search) sp.set("search", params.search);
+    return apiFetch<WageRatesResponse>(`/admin/wage-rates${sp.toString() ? `?${sp}` : ""}`);
+  },
+
+  createWageRate(payload: CreateWageRatePayload) {
+    return apiFetch<{ message: string; id: number }>(`/admin/wage-rates`, {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  updateWageRate(payload: UpdateWageRatePayload) {
+    return apiFetch<{ message: string }>(`/admin/wage-rates`, {
+      method: "PUT",
+      body: payload,
+    });
+  },
+
+  deleteWageRate(id: number) {
+    return apiFetch<{ message: string }>(`/admin/wage-rates?id=${id}`, { method: "DELETE" });
+  },
+};

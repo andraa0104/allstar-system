@@ -40,3 +40,6 @@ env.local
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local data files (not for version control)
+/public/data/user_privileges.json

@@ -7,10 +7,12 @@ import { UserManagement } from "@/components/settings/user-management";
 import { PrivilegeAccess } from "@/components/settings/privilege-access";
 import { WhatsAppSettings } from "@/components/settings/whatsapp-settings";
 import { AppearanceSettings } from "@/components/settings/appearance-settings";
+import { SalarySettings } from "@/components/settings/salary-settings";
+import { WageRateSettings } from "@/components/settings/wage-rate-settings";
 import { useEffect, useState } from "react";
 import { getSession } from "@/lib/session";
 import type { SessionUser } from "@/lib/types";
-import { User, KeyRound, Users, ShieldAlert, MessageSquare, Palette } from "lucide-react";
+import { User, KeyRound, Users, ShieldAlert, MessageSquare, Palette, Banknote, BadgeDollarSign } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -72,6 +74,8 @@ export default function SettingsPage() {
     { id: "security", label: "Change Password", icon: KeyRound, allowed: true },
     { id: "appearance", label: "Appearance", icon: Palette, allowed: true },
     { id: "users", label: "User Management", icon: Users, allowed: isAdmin },
+    { id: "salary", label: "Salary & Employee", icon: Banknote, allowed: isAdmin },
+    { id: "wage", label: "Wage Rate", icon: BadgeDollarSign, allowed: isAdmin },
     { id: "privilege", label: "Privilege Access", icon: ShieldAlert, allowed: isAdmin },
     { id: "whatsapp", label: "WhatsApp Gateway", icon: MessageSquare, allowed: hasWhatsAppAccess },
   ];
@@ -113,6 +117,8 @@ export default function SettingsPage() {
         {activeTab === "security" && <SecuritySettings />}
         {activeTab === "appearance" && <AppearanceSettings />}
         {activeTab === "users" && isAdmin && <UserManagement />}
+        {activeTab === "salary" && isAdmin && <SalarySettings />}
+        {activeTab === "wage" && isAdmin && <WageRateSettings />}
         {activeTab === "privilege" && isAdmin && <PrivilegeAccess />}
         {activeTab === "whatsapp" && hasWhatsAppAccess && <WhatsAppSettings />}
       </div>
