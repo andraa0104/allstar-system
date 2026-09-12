@@ -76,49 +76,35 @@ export async function GET(request: Request) {
 
     const getCategoryClause = (cat: number): string => {
       switch (cat) {
-        case 1: // FO DP - Antrian
+        case 1: // FO DP Antrian Produksi
           return "unique_fo.uang_muka > 0 AND unique_fo.FinalQC_Packiing IS NULL";
-        case 2: // FO DP + Non DP Antrian
+        case 2: // FO Outstanding Produksi
           return "unique_fo.FinalQC_Packiing IS NULL";
         case 3: // FO Belum DP
           return "unique_fo.uang_muka = 0 AND unique_fo.sisa_tagihan = unique_fo.totalrp";
-        case 4: // DP - Belum KLaim
+        case 4: // FO DP - Belum Klaim Jahit
           return "unique_fo.jurnal IS NULL AND unique_fo.uang_muka > 0";
-        case 5: // Belum KLaim - FinalQC
+        case 5: // FO Belum Klaim Jahit - FinalQC
           return "unique_fo.jurnal IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
         case 6: // Proses Desain
-          return "unique_fo.uang_muka IS NOT NULL AND unique_fo.Desain_Ready IS NULL";
-        case 7: // Desain Ready
-          return "unique_fo.Start_Layout IS NULL AND unique_fo.Desain_Ready IS NOT NULL";
-        case 8: // Proses Susun Layout
-          return "unique_fo.Start_Layout IS NOT NULL AND unique_fo.Layout_ReadyPrint IS NULL";
-        case 9: // Layout Print Ready
-          return "unique_fo.Layout_ReadyPrint IS NOT NULL AND unique_fo.Start_Print IS NULL";
-        case 10: // Proses Persiapan Bahan Kain
+          return "unique_fo.uang_muka > 0 AND unique_fo.Desain_Ready IS NULL";
+        case 7: // Proses Layout
+          return "(unique_fo.Start_Layout IS NULL AND unique_fo.Desain_Ready IS NOT NULL) OR (unique_fo.Start_Layout IS NOT NULL AND unique_fo.Layout_ReadyPrint IS NULL)";
+        case 8: // Proses Persiapan Bahan
           return "unique_fo.Kain_ReadyPress IS NULL AND unique_fo.Ambil_Kain IS NOT NULL";
-        case 11: // Proses Printing
-          return "(unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NULL) OR (unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NULL)";
-        case 12: // Ready to Press
-          return "unique_fo.Start_Press IS NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NOT NULL";
-        case 13: // Proses Press
-          return "unique_fo.Start_Press IS NOT NULL AND unique_fo.Press_ReadyCut IS NULL";
-        case 14: // Kain Ready Cutting
-          return "unique_fo.Start_Cut IS NULL AND unique_fo.Press_ReadyCut IS NOT NULL";
-        case 15: // Proses Cutting
-          return "unique_fo.Start_Cut IS NOT NULL AND unique_fo.Cut_ReadyJahit IS NULL";
-        case 16: // Ready Jahit
-          return "unique_fo.Start_Jahit IS NULL AND unique_fo.Cut_ReadyJahit IS NOT NULL";
-        case 17: // Proses Jahit
-          return "unique_fo.Start_Jahit IS NOT NULL AND unique_fo.Jahit_ReadyQC IS NULL";
-        case 18: // Ready QC
-          return "unique_fo.Start_QC IS NULL AND unique_fo.Jahit_ReadyQC IS NOT NULL";
-        case 19: // Proses QC
-          return "unique_fo.Start_QC IS NOT NULL AND unique_fo.FinalQC_Packiing IS NULL";
-        case 20: // Ready Packing
-          return "unique_fo.QC_ReadyGudang IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL";
-        case 21: // Packing Selesai
+        case 9: // Proses Printing
+          return "(unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NULL) OR (unique_fo.Layout_ReadyPrint IS NOT NULL AND unique_fo.Start_Print IS NULL)";
+        case 10: // Proses Press Sublim
+          return "(unique_fo.Start_Press IS NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NOT NULL) OR (unique_fo.Start_Print IS NOT NULL AND unique_fo.Print_ReadyPress IS NOT NULL AND unique_fo.Kain_ReadyPress IS NULL) OR (unique_fo.Start_Press IS NOT NULL AND unique_fo.Press_ReadyCut IS NULL)";
+        case 11: // Proses Cutting Kain Sublime
+          return "(unique_fo.Start_Cut IS NULL AND unique_fo.Press_ReadyCut IS NOT NULL) OR (unique_fo.Start_Cut IS NOT NULL AND unique_fo.Cut_ReadyJahit IS NULL)";
+        case 12: // Proses Jahit
+          return "(unique_fo.Start_Jahit IS NULL AND unique_fo.Cut_ReadyJahit IS NOT NULL) OR (unique_fo.Start_Jahit IS NOT NULL AND unique_fo.Jahit_ReadyQC IS NULL)";
+        case 13: // Proses QC
+          return "(unique_fo.Start_QC IS NULL AND unique_fo.Jahit_ReadyQC IS NOT NULL) OR (unique_fo.Start_QC IS NOT NULL AND unique_fo.FinalQC_Packiing IS NULL) OR (unique_fo.QC_ReadyGudang IS NULL AND unique_fo.FinalQC_Packiing IS NOT NULL)";
+        case 14: // Produk Ready to Customer
           return "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NULL";
-        case 22: // Final Cust
+        case 15: // Produk Sudah di Terima Customer
           return "unique_fo.QC_ReadyGudang IS NOT NULL AND unique_fo.Final_Cust IS NOT NULL";
         default:
           return "1=1";
@@ -151,21 +137,21 @@ export async function GET(request: Request) {
       if (userRole === "tukang-desain") {
         statusClause = getCategoryClause(6);
       } else if (userRole === "tukang-layout") {
-        statusClause = `(${getCategoryClause(7)} OR ${getCategoryClause(8)})`;
+        statusClause = getCategoryClause(7);
       } else if (userRole === "pengawas") {
-        statusClause = `(${getCategoryClause(9)} OR ${getCategoryClause(14)} OR ${getCategoryClause(10)} OR ${getCategoryClause(11)})`;
+        statusClause = `(${getCategoryClause(8)} OR ${getCategoryClause(9)} OR ${getCategoryClause(11)})`;
       } else if (userRole === "tukang-print") {
-        statusClause = `(${getCategoryClause(9)} OR ${getCategoryClause(11)})`;
+        statusClause = getCategoryClause(9);
       } else if (userRole === "tukang-press") {
-        statusClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        statusClause = `(${getCategoryClause(10)} AND EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
       } else if (userRole === "tukang-pressdtf") {
-        statusClause = `((${getCategoryClause(12)} OR ${getCategoryClause(13)}) AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
+        statusClause = `(${getCategoryClause(10)} AND NOT EXISTS (SELECT 1 FROM tb_kdfodetail det WHERE TRIM(det.no_fo) = TRIM(unique_fo.no_fo) AND det.produk LIKE '%JERSEY%'))`;
       } else if (userRole === "tukang-cutting") {
-        statusClause = `(${getCategoryClause(14)} OR ${getCategoryClause(15)})`;
+        statusClause = getCategoryClause(11);
       } else if (userRole === "tukang-qc") {
-        statusClause = `(${getCategoryClause(16)} OR ${getCategoryClause(17)} OR ${getCategoryClause(18)} OR ${getCategoryClause(19)} OR ${getCategoryClause(20)})`;
+        statusClause = `(${getCategoryClause(12)} OR ${getCategoryClause(13)})`;
       } else if (userRole === "tukang-layanics") {
-        statusClause = getCategoryClause(21);
+        statusClause = getCategoryClause(14);
       }
     }
 

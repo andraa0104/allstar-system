@@ -13,14 +13,17 @@ export class HttpError extends Error {
 }
 
 function corsHeaders(origin: string | null) {
-  const allowedOrigin =
-    origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0] ?? "*";
+  // Safari requires exact origin echo when accessed via IP address without domain/SSL
+  const allowedOrigin = origin
+    ? origin
+    : (allowedOrigins[0] ?? "*");
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Cache-Control": "no-store",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+    "Access-Control-Allow-Credentials": "true",
+    "Cache-Control": "no-store, no-cache, must-revalidate",
   };
 }
 
@@ -52,11 +55,13 @@ export function emptyResponse(init: ResponseInit = {}, request?: Request) {
 
 export function errorResponse(error: unknown, request: Request) {
   if (error instanceof ZodError) {
+    const formattedErrors = error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join("; ");
     return jsonResponse(
       {
-        message: "Validasi request gagal.",
+        message: `Validasi request gagal: ${formattedErrors}`,
         errors: error.issues,
-        error: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
+        error: formattedErrors,
+        details: JSON.stringify(error.issues, null, 2),
       },
       { status: 422 },
       request,
@@ -64,24 +69,37 @@ export function errorResponse(error: unknown, request: Request) {
   }
 
   if (error instanceof HttpError) {
-    return jsonResponse({ message: error.message }, { status: error.status }, request);
+    return jsonResponse({ message: error.message, details: error.message }, { status: error.status }, request);
   }
 
   console.error(error);
 
-  const err = error as any;
+  const errObj = error as any;
+  const sqlState = errObj?.sqlState || null;
+  const code = errObj?.code || null;
+  const sqlMessage = errObj?.sqlMessage || null;
+  const errno = errObj?.errno || null;
   const isDev = process.env.NODE_ENV !== "production";
+  const message = sqlMessage || errObj?.message || "Terjadi kesalahan server.";
+
+  const detailsParts: string[] = [];
+  if (code) detailsParts.push(`Code: ${code}`);
+  if (errno) detailsParts.push(`Errno: ${errno}`);
+  if (sqlState) detailsParts.push(`SQL State: ${sqlState}`);
+  if (sqlMessage) detailsParts.push(`SQL Message: ${sqlMessage}`);
+  if (errObj?.sql && isDev) detailsParts.push(`SQL: ${errObj.sql}`);
+  if (errObj?.stack && isDev) detailsParts.push(`Stack: ${errObj.stack}`);
 
   return jsonResponse(
     {
-      message: err?.sqlMessage || err?.message || "Terjadi kesalahan server.",
-      error: isDev ? (err?.sqlMessage || err?.message || String(error)) : undefined,
-      code: err?.code,
-      errno: err?.errno,
-      sqlState: err?.sqlState,
-      sqlMessage: err?.sqlMessage,
-      sql: isDev ? err?.sql : undefined,
-      details: isDev ? (err?.stack || String(error)) : undefined,
+      message,
+      error: isDev ? (sqlMessage || errObj?.message || String(error)) : undefined,
+      details: detailsParts.length > 0 ? detailsParts.join(" | ") : String(error),
+      code,
+      errno,
+      sqlState,
+      sqlMessage,
+      sql: isDev ? errObj?.sql : undefined,
     },
     { status: 500 },
     request,

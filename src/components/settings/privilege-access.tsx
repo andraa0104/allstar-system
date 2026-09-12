@@ -1,18 +1,46 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ShieldCheck, User, Save, Lock, Settings } from "lucide-react";
+import { ShieldCheck, User, Save, Lock, Settings, FolderTree, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import type { AdminAccount } from "@/lib/types";
 
-const MODULE_OPTIONS = [
-  "Dashboard",
-  "Order Control",
-  "Order Job",
-  "System Settings",
-  "WhatsApp Gateway",
+type ModuleGroup = {
+  parentMenu: string;
+  description?: string;
+  badgeTone?: string;
+  subModules: string[];
+};
+
+const MODULE_GROUPS: ModuleGroup[] = [
+  {
+    parentMenu: "Dashboard",
+    description: "Menu utama ringkasan sistem dan statistik.",
+    badgeTone: "bg-blue-500/10 text-blue-300 border-blue-500/20",
+    subModules: ["Dashboard"],
+  },
+  {
+    parentMenu: "Form Order",
+    description: "Menu alur kerja form order produksi.",
+    badgeTone: "bg-purple-500/10 text-purple-300 border-purple-500/20",
+    subModules: ["Order Control", "Order Job", "Monitoring Staff"],
+  },
+  {
+    parentMenu: "Employee",
+    description: "Menu pengelolaan data karyawan dan departemen.",
+    badgeTone: "bg-cyan-500/10 text-cyan-300 border-cyan-500/20",
+    subModules: ["Management Employee"],
+  },
+  {
+    parentMenu: "System Settings",
+    description: "Menu pengaturan sistem, otorisasi hak akses, dan integrasi WhatsApp.",
+    badgeTone: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+    subModules: ["System Settings", "WhatsApp Gateway"],
+  },
 ];
+
+const ALL_MODULES = MODULE_GROUPS.flatMap((g) => g.subModules);
 
 const PERMISSION_FLAGS = [
   { flag: "V", label: "View (V)", desc: "Melihat & mengakses menu" },
@@ -30,7 +58,7 @@ export function PrivilegeAccess() {
   // Get all users for the dropdown
   const { data: usersData, isLoading: isLoadingUsers } = useQuery({
     queryKey: ["all-users-list"],
-    queryFn: () => api.getAccounts({ limit: 100000 }), // Get all users for dropdown
+    queryFn: () => api.getAccounts({ limit: 100000 }),
   });
 
   const users: AdminAccount[] = usersData?.items ?? [];
@@ -47,9 +75,8 @@ export function PrivilegeAccess() {
     if (permissionData?.permissions) {
       setPermissionsMatrix(permissionData.permissions);
     } else {
-      // Default empty state
       const defaultState: Record<string, Record<string, boolean>> = {};
-      MODULE_OPTIONS.forEach((mod) => {
+      ALL_MODULES.forEach((mod) => {
         defaultState[mod] = { V: false, C: false, U: false, D: false };
       });
       setPermissionsMatrix(defaultState);
@@ -96,16 +123,16 @@ export function PrivilegeAccess() {
   return (
     <div className="space-y-5">
       {/* Selector card */}
-      <section className="rounded-xl border border-slate-800/80 bg-slate-900/50 p-6 backdrop-blur-md shadow-xl max-w-3xl mx-auto w-full">
+      <section className="rounded-xl border border-slate-800/80 bg-slate-900/50 p-6 backdrop-blur-md shadow-xl max-w-4xl mx-auto w-full">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-800/80 mb-5">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
+            <div className="flex size-10 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
               <ShieldCheck size={20} />
             </div>
             <div>
               <h2 className="text-base font-bold text-white">Privilege Access Control</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Atur otorisasi akses menu (CRUD) berdasarkan user yang dipilih.
+                Atur otorisasi akses sub-menu (CRUD) yang dibungkus dalam menu induk.
               </p>
             </div>
           </div>
@@ -116,7 +143,7 @@ export function PrivilegeAccess() {
               Pilih User:
             </label>
             <div className="relative flex items-center bg-slate-950 px-3 h-10 rounded-lg border border-slate-700 w-full sm:w-64">
-              <User size={14} className="text-slate-500 mr-2" />
+              <User size={14} className="text-slate-500 mr-2 shrink-0" />
               <select
                 value={selectedKdUser}
                 onChange={(e) => {
@@ -153,7 +180,7 @@ export function PrivilegeAccess() {
           </div>
         )}
 
-        {/* Permissions Grid */}
+        {/* Permissions Grouped Grid */}
         {!selectedKdUser ? (
           <div className="flex flex-col items-center justify-center p-12 text-slate-500 border border-dashed border-slate-800 rounded-lg bg-slate-950/20">
             <Lock size={32} className="text-slate-700 mb-3 animate-pulse" />
@@ -166,48 +193,84 @@ export function PrivilegeAccess() {
           </div>
         ) : (
           <div className="space-y-6">
-            {MODULE_OPTIONS.map((module) => {
-              const modulePerms = permissionsMatrix[module] || { V: false, C: false, U: false, D: false };
-              return (
-                <div key={module} className="rounded-xl border border-slate-800 bg-slate-950/50 overflow-hidden shadow-inner">
-                  {/* Module header */}
-                  <div className="flex items-center gap-2 bg-slate-950/80 px-4 py-3 border-b border-slate-800">
-                    <Settings size={14} className="text-cyan-400" />
-                    <span className="text-xs font-bold text-slate-200">{module}</span>
+            {MODULE_GROUPS.map((group) => (
+              <div
+                key={group.parentMenu}
+                className="rounded-xl border border-slate-800 bg-slate-950/60 overflow-hidden shadow-inner space-y-3 p-4"
+              >
+                {/* Menu Induk (Parent Header) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800/80 gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <FolderTree size={16} className="text-cyan-400 shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Menu Induk:
+                        </span>
+                        <h3 className="text-sm font-bold text-white">{group.parentMenu}</h3>
+                      </div>
+                      {group.description && (
+                        <p className="text-[11px] text-slate-400 mt-0.5">{group.description}</p>
+                      )}
+                    </div>
                   </div>
-
-                  {/* Matrix Checkboxes */}
-                  <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {PERMISSION_FLAGS.map(({ flag, label, desc }) => {
-                      const isChecked = !!modulePerms[flag];
-                      return (
-                        <label
-                          key={flag}
-                          className={`flex flex-col p-3 rounded-lg border transition cursor-pointer select-none ${
-                            isChecked
-                              ? "bg-cyan-500/5 border-cyan-500/30 text-white"
-                              : "bg-slate-900/20 border-slate-800/80 text-slate-400 hover:border-slate-700"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => handleToggle(module, flag)}
-                              className="size-4 rounded border-slate-700 bg-slate-950 text-cyan-400 focus:ring-0 focus:ring-offset-0 accent-cyan-400 cursor-pointer"
-                            />
-                          </div>
-                          <span className="text-[10px] text-slate-500 leading-tight">
-                            {desc}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
+                  <span className={`inline-flex items-center rounded-md border px-2.5 py-0.5 text-[10px] font-semibold w-fit ${group.badgeTone || "bg-slate-800 text-slate-300 border-slate-700"}`}>
+                    {group.subModules.length} Sub-Menu
+                  </span>
                 </div>
-              );
-            })}
+
+                {/* Sub-Modules List */}
+                <div className="space-y-3 pl-0 sm:pl-3">
+                  {group.subModules.map((subMod) => {
+                    const modulePerms = permissionsMatrix[subMod] || { V: false, C: false, U: false, D: false };
+                    return (
+                      <div
+                        key={subMod}
+                        className="rounded-lg border border-slate-800/80 bg-slate-900/50 overflow-hidden"
+                      >
+                        {/* Sub-Menu Header */}
+                        <div className="flex items-center gap-2 bg-slate-900/80 px-3.5 py-2.5 border-b border-slate-800/80">
+                          <ChevronRight size={14} className="text-cyan-400 shrink-0" />
+                          <span className="text-xs font-bold text-cyan-300">
+                            Sub-Menu: {subMod}
+                          </span>
+                        </div>
+
+                        {/* Matrix Checkboxes */}
+                        <div className="p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {PERMISSION_FLAGS.map(({ flag, label, desc }) => {
+                            const isChecked = !!modulePerms[flag];
+                            return (
+                              <label
+                                key={flag}
+                                className={`flex flex-col p-2.5 rounded-lg border transition cursor-pointer select-none ${
+                                  isChecked
+                                    ? "bg-cyan-500/10 border-cyan-500/40 text-white"
+                                    : "bg-slate-950/40 border-slate-800/80 text-slate-400 hover:border-slate-700"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-[11px] font-bold uppercase tracking-wider">{label}</span>
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => handleToggle(subMod, flag)}
+                                    className="size-4 rounded border-slate-700 bg-slate-950 text-cyan-400 focus:ring-0 focus:ring-offset-0 accent-cyan-400 cursor-pointer"
+                                  />
+                                </div>
+                                <span className="text-[10px] text-slate-500 leading-tight">
+                                  {desc}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
 
             {/* Save bar */}
             <div className="flex items-center justify-between pt-4 border-t border-slate-800/80">

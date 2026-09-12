@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/session";
@@ -22,7 +22,8 @@ import {
   Filter,
   ArrowRight,
   Archive,
-  Timer
+  Timer,
+  ChevronDown
 } from "lucide-react";
 import type { FoDetailData, MonitoringStaffRow } from "@/lib/types";
 
@@ -392,15 +393,66 @@ export default function MonitoringStaffPage() {
   const [detailLimit, setDetailLimit] = useState<number | "all">(5);
   const [detailPage, setDetailPage] = useState(1);
 
-  const validNames = [
-    "ALDO", "BEN", "JIHAN", "FINA", "FANI", "EGY", "IVAN", "IZAMI", "IKHA", 
-    "NOVAN", "NATRIS", "NASRIL", "PUSPA", "RISKY", "REINA", "SAFA", "SAID", 
-    "SYAHNI", "YOHAND", "KARIM-PENJAHIT", "ADI-PENJAHIT", "SANDY-PENJAHIT", 
-    "ALIF-PENJAHIT", "DIDIN-PENJAHIT"
-  ];
+  const employeesQuery = useQuery({
+    queryKey: ["employees", "all"],
+    queryFn: () => api.getEmployees({ limit: "all" }),
+    staleTime: 60 * 1000,
+  });
+
+  const [isPegawaiOpen, setIsPegawaiOpen] = useState(false);
+  const [pegawaiSearch, setPegawaiSearch] = useState("");
+  const pegawaiDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pegawaiDropdownRef.current && !pegawaiDropdownRef.current.contains(event.target as Node)) {
+        setIsPegawaiOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredEmployees = (employeesQuery.data?.items || []).filter((emp) => {
+    const term = pegawaiSearch.toLowerCase();
+    return (
+      emp.nm_karyawan.toLowerCase().includes(term) ||
+      (emp.jabatan && emp.jabatan.toLowerCase().includes(term))
+    );
+  });
+
+  const selectedEmp = employeesQuery.data?.items?.find((e) => e.nm_karyawan === namaPegawai);
+  const selectedPegawaiLabel =
+    namaPegawai === "all"
+      ? "Semua Pegawai"
+      : selectedEmp
+      ? `${selectedEmp.nm_karyawan} - ${selectedEmp.jabatan}`
+      : namaPegawai || "Pilih Pegawai";
+
+
+
+  const [jobFilter, setJobFilter] = useState("all");
+
+  const controlStatusesQuery = useQuery({
+    queryKey: ["control-statuses", namaPegawai, dateFilter, startDate, endDate],
+    queryFn: () =>
+      api.getControlStatuses({
+        nama_pegawai: namaPegawai,
+        date_filter: dateFilter,
+        start_date: startDate,
+        end_date: endDate,
+      }),
+    enabled: namaPegawai !== "",
+    staleTime: 60 * 1000,
+  });
+
+  // Auto select "all" (Semua Data) whenever pegawai or date filter changes
+  useEffect(() => {
+    setJobFilter("all");
+  }, [namaPegawai, dateFilter, startDate, endDate]);
 
   const tableQuery = useQuery({
-    queryKey: ["monitoring-staff", page, limit, namaPegawai, dateFilter, startDate, endDate, search],
+    queryKey: ["monitoring-staff", page, limit, namaPegawai, dateFilter, startDate, endDate, jobFilter, search],
     queryFn: () =>
       api.getMonitoringStaff({
         page,
@@ -409,6 +461,7 @@ export default function MonitoringStaffPage() {
         date_filter: dateFilter,
         start_date: startDate,
         end_date: endDate,
+        job_filter: jobFilter,
         search,
       }),
     enabled: namaPegawai !== "",
@@ -483,31 +536,103 @@ export default function MonitoringStaffPage() {
                   <span className="inline-flex items-center rounded bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-400 border border-cyan-500/20">
                     Total: {tableQuery.data.totalQty.toLocaleString("id-ID")} Qty
                   </span>
+                  <span className="inline-flex items-center rounded bg-purple-100 px-1.5 py-0.5 text-[10px] font-bold text-purple-800 dark:bg-purple-500/20 dark:border-purple-500/30 dark:text-purple-400 border border-purple-300">
+                    Total: {tableQuery.data.count.toLocaleString("id-ID")} FO
+                  </span>
                 </div>
               )}
             </h2>
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end mt-4 2xl:mt-0">
-            {/* Nama Pegawai filter */}
+            {/* Nama Pegawai filter with search */}
             <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2">
               <span className="text-xs font-medium text-slate-400">Pegawai:</span>
-              <select
-                value={namaPegawai}
-                onChange={(e) => {
-                  setNamaPegawai(e.target.value);
-                  setPage(1);
-                }}
-                className="h-9 w-full md:w-40 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400"
-              >
-                <option value="" disabled>Pilih Pegawai</option>
-                <option value="all">Semua Pegawai</option>
-                {validNames.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative w-full md:w-64" ref={pegawaiDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsPegawaiOpen((prev) => !prev)}
+                  className="h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 flex items-center justify-between gap-2"
+                >
+                  <span className="truncate text-left">{selectedPegawaiLabel}</span>
+                  <ChevronDown className={`size-4 shrink-0 text-slate-400 transition-transform ${isPegawaiOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {isPegawaiOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl p-2 flex flex-col gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={pegawaiSearch}
+                        onChange={(e) => setPegawaiSearch(e.target.value)}
+                        placeholder="Cari nama / jabatan..."
+                        className="h-8.5 w-full rounded-md border border-slate-800 bg-slate-950 pl-8 pr-7 text-xs text-white outline-none focus:border-cyan-500 placeholder:text-slate-500"
+                      />
+                      {pegawaiSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setPegawaiSearch("")}
+                          className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-0.5 custom-scrollbar">
+                      {("semua pegawai".includes(pegawaiSearch.toLowerCase()) || !pegawaiSearch) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNamaPegawai("all");
+                            setPage(1);
+                            setIsPegawaiOpen(false);
+                            setPegawaiSearch("");
+                          }}
+                          className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between ${
+                            namaPegawai === "all" ? "bg-cyan-500/20 text-cyan-300 font-semibold" : "text-slate-300 hover:bg-slate-800"
+                          }`}
+                        >
+                          <span>Semua Pegawai</span>
+                          {namaPegawai === "all" && <Check className="size-3.5 text-cyan-400 shrink-0" />}
+                        </button>
+                      )}
+
+                      {filteredEmployees.map((emp) => {
+                        const isSelected = namaPegawai === emp.nm_karyawan;
+                        return (
+                          <button
+                            key={emp.id_karyawan}
+                            type="button"
+                            onClick={() => {
+                              setNamaPegawai(emp.nm_karyawan);
+                              setPage(1);
+                              setIsPegawaiOpen(false);
+                              setPegawaiSearch("");
+                            }}
+                            className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between gap-2 ${
+                              isSelected ? "bg-cyan-500/20 text-cyan-300 font-semibold" : "text-slate-300 hover:bg-slate-800"
+                            }`}
+                          >
+                            <span className="truncate">
+                              {emp.nm_karyawan} <span className="text-slate-400 font-normal">- {emp.jabatan}</span>
+                            </span>
+                            {isSelected && <Check className="size-3.5 text-cyan-400 shrink-0" />}
+                          </button>
+                        );
+                      })}
+
+                      {filteredEmployees.length === 0 && !("semua pegawai".includes(pegawaiSearch.toLowerCase())) && (
+                        <div className="px-3 py-3 text-center text-xs text-slate-500">
+                          Pegawai tidak ditemukan
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Date filter */}
@@ -550,6 +675,33 @@ export default function MonitoringStaffPage() {
                 />
               </div>
             )}
+
+            {/* Job filter */}
+            <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2">
+              <span className="text-xs font-medium text-slate-400">Job:</span>
+              <select
+                value={jobFilter}
+                disabled={namaPegawai === ""}
+                onChange={(e) => {
+                  setJobFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="h-9 w-full md:w-48 rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {namaPegawai === "" ? (
+                  <option value="all">Pilih Pegawai dulu</option>
+                ) : (
+                  <>
+                    <option value="all">Semua Data</option>
+                    {controlStatusesQuery.data?.statuses?.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
 
             {/* Search filter */}
             <div className="flex flex-col md:flex-row md:items-center gap-1.5 md:gap-2">
@@ -594,6 +746,7 @@ export default function MonitoringStaffPage() {
                 <th className="px-3 py-2">No Job</th>
                 <th className="px-3 py-2">No FO</th>
                 <th className="px-3 py-2">Order Date</th>
+                <th className="px-3 py-2">Date Job</th>
                 <th className="px-3 py-2">Pegawai</th>
                 <th className="px-3 py-2">Customer</th>
                 <th className="px-3 py-2">Qty</th>
@@ -603,13 +756,13 @@ export default function MonitoringStaffPage() {
             <tbody className="divide-y divide-slate-800/60">
               {namaPegawai === "" ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-10 text-center text-xs text-slate-400 italic">
+                  <td colSpan={8} className="px-3 py-10 text-center text-xs text-slate-400 italic">
                     Silakan pilih pegawai terlebih dahulu untuk menampilkan data.
                   </td>
                 </tr>
               ) : tableQuery.isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-6 text-center text-xs text-slate-400 italic">
+                  <td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-400 italic">
                     Memuat data monitoring staff...
                   </td>
                 </tr>
@@ -617,7 +770,7 @@ export default function MonitoringStaffPage() {
 
               {namaPegawai !== "" && !tableQuery.isLoading && !tableQuery.data?.items?.length ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-6 text-center text-xs text-slate-400 italic">
+                  <td colSpan={8} className="px-3 py-6 text-center text-xs text-slate-400 italic">
                     Tidak ada data yang cocok dengan kriteria.
                   </td>
                 </tr>
@@ -625,14 +778,17 @@ export default function MonitoringStaffPage() {
 
               {tableQuery.data?.items?.map((item) => (
                 <tr key={item.no_job} className="transition-colors border-b border-slate-800/60 hover:bg-slate-900/30 text-slate-300">
-                  <td className="px-3 py-2 font-mono font-bold tracking-wide text-slate-800 dark:text-cyan-400">
+                  <td className="px-3 py-2 font-mono font-bold tracking-wide text-cyan-500 dark:text-cyan-400">
                     {item.no_job}
                   </td>
-                  <td className="px-3 py-2 font-mono tracking-wide text-slate-700 dark:text-white">
+                  <td className="px-3 py-2 font-mono tracking-wide text-slate-600 dark:text-slate-400">
                     {item.no_fo}
                   </td>
                   <td className="px-3 py-2 text-xs">
                     {formatIndonesianDate(item.order_date)}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-cyan-500 font-semibold">
+                    {formatIndonesianDateTime(item.datetime_lanjutan)}
                   </td>
                   <td className="px-3 py-2 font-semibold">
                     {item.nama_pegawai}
@@ -686,8 +842,8 @@ export default function MonitoringStaffPage() {
                 <div>
                   <span className="block text-[9px] uppercase font-bold text-slate-500 tracking-wider">No Job / No FO</span>
                   <div className="flex flex-col gap-1 mt-0.5">
-                    <span className="text-xs font-mono font-bold text-slate-800 dark:text-cyan-400 tracking-wide">{item.no_job}</span>
-                    <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-white tracking-wide">{item.no_fo}</span>
+                    <span className="text-xs font-mono font-bold text-cyan-500 dark:text-cyan-400 tracking-wide">{item.no_job}</span>
+                    <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-400 tracking-wide">{item.no_fo}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 items-center">
@@ -713,10 +869,14 @@ export default function MonitoringStaffPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2.5 border-t border-slate-800/40">
+              <div className="grid grid-cols-3 gap-3 pt-2.5 border-t border-slate-800/40">
                 <div>
                   <span className="block text-[9px] uppercase font-semibold text-slate-500">Order Date</span>
                   <span className="text-[11px] text-slate-300 block mt-0.5 leading-relaxed">{formatIndonesianDate(item.order_date)}</span>
+                </div>
+                <div>
+                  <span className="block text-[9px] uppercase font-semibold text-slate-500">Date Job</span>
+                  <span className="text-[11px] text-cyan-500 font-semibold block mt-0.5 leading-relaxed">{formatIndonesianDateTime(item.datetime_lanjutan)}</span>
                 </div>
                 <div>
                   <span className="block text-[9px] uppercase font-semibold text-slate-500">Qty Order</span>

@@ -18,9 +18,11 @@ import {
   AlertTriangle,
   ShieldAlert,
   Pencil,
+  Search,
+  ChevronDown
 } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { api } from "@/lib/api";
 import { getSession } from "@/lib/session";
@@ -501,6 +503,35 @@ export default function OrderJobPage() {
   const [dateNextJob, setDateNextJob] = useState("");
   const [isTimeEdited, setIsTimeEdited] = useState(false);
 
+  const employeesQuery = useQuery({
+    queryKey: ["employees", "all"],
+    queryFn: () => api.getEmployees({ limit: "all" }),
+    staleTime: 60 * 1000,
+  });
+
+  const [isPegawaiOpen, setIsPegawaiOpen] = useState(false);
+  const [pegawaiSearch, setPegawaiSearch] = useState("");
+  const pegawaiDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (pegawaiDropdownRef.current && !pegawaiDropdownRef.current.contains(event.target as Node)) {
+        setIsPegawaiOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const employeeList = employeesQuery.data?.items || [];
+  const filteredEmployeesModal = employeeList.filter((emp) => {
+    const term = pegawaiSearch.toLowerCase();
+    return (
+      emp.nm_karyawan.toLowerCase().includes(term) ||
+      (emp.jabatan && emp.jabatan.toLowerCase().includes(term))
+    );
+  });
+
   useEffect(() => {
     if (!isEditModalOpen) {
       setModalError("");
@@ -510,21 +541,18 @@ export default function OrderJobPage() {
       setKeterangan("");
       setDateNextJob("");
       setIsTimeEdited(false);
+      setIsPegawaiOpen(false);
+      setPegawaiSearch("");
     } else if (session?.name) {
       const nameUpper = session.name.trim().toUpperCase();
-      const validNames = [
-        "ALDO", "BEN", "JIHAN", "FINA", "FANI", "EGY", "IVAN", "IZAMI", "IKHA", 
-        "NOVAN", "NATRIS", "NASRIL", "PUSPA", "RISKY", "REINA", "SAFA", "SAID", 
-        "SYAHNI", "YOHAND", "KARIM-PENJAHIT", "ADI-PENJAHIT", "SANDY-PENJAHIT", 
-        "ALIF-PENJAHIT", "DIDIN-PENJAHIT"
-      ];
-      if (validNames.includes(nameUpper)) {
-        setSelectedPegawai(nameUpper);
+      const matchEmp = employeeList.find((e) => e.nm_karyawan.toUpperCase() === nameUpper);
+      if (matchEmp) {
+        setSelectedPegawai(matchEmp.nm_karyawan);
       } else {
         setSelectedPegawai("NN");
       }
     }
-  }, [isEditModalOpen, session]);
+  }, [isEditModalOpen, session, employeeList]);
 
   const handleUpdateJob = async (nextJobVal?: string) => {
     if (!editFo?.no_fo || !session?.username) return;
@@ -668,29 +696,17 @@ export default function OrderJobPage() {
   const [foListLimit, setFoListLimit] = useState<number | "all">(5);
   const [foListSearch, setFoListSearch] = useState("");
   const [foListSearchBy, setFoListSearchBy] = useState<string>("no_fo");
-  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(0);
+  const [foListStatusCategory, setFoListStatusCategory] = useState<number>(1);
 
   useEffect(() => {
     if (session) {
       const role = session.role?.toLowerCase();
       if (role === "tukang-desain") {
         setFoListStatusCategory(6);
-      } else if (role === "tukang-layout") {
-        setFoListStatusCategory(0);
-      } else if (role === "pengawas") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-print") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-press" || role === "tukang-pressdtf") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-cutting") {
-        setFoListStatusCategory(0);
-      } else if (role === "tukang-qc") {
-        setFoListStatusCategory(0);
       } else if (role === "tukang-layanics") {
-        setFoListStatusCategory(21);
+        setFoListStatusCategory(14);
       } else {
-        setFoListStatusCategory(0);
+        setFoListStatusCategory(1);
       }
     }
   }, [session]);
@@ -1104,134 +1120,34 @@ export default function OrderJobPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             {/* Kategori Status filter dropdown */}
-            {(session?.role?.toLowerCase() === "admin" ||
-              session?.role?.toLowerCase() === "tukang-qc" ||
-              session?.role?.toLowerCase() === "pengawas" ||
-              session?.role?.toLowerCase() === "tukang-layout" ||
-              session?.role?.toLowerCase() === "tukang-print" ||
-              session?.role?.toLowerCase() === "tukang-press" ||
-              session?.role?.toLowerCase() === "tukang-pressdtf" ||
-              session?.role?.toLowerCase() === "tukang-cutting" ||
-              session?.role?.toLowerCase() === "tukang-layanics") && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-slate-400">Status:</span>
-                <select
-                  value={foListStatusCategory}
-                  onChange={(e) => {
-                    setFoListStatusCategory(Number(e.target.value));
-                    setFoListPage(1);
-                  }}
-                  className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
-                >
-                  {(() => {
-                    const role = session?.role?.toLowerCase();
-                    if (role === "tukang-cutting") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Ready Cutting, Start Cutting)</option>
-                          <option value={14}>Ready Cutting</option>
-                          <option value={15}>Start Cutting</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-pressdtf") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data</option>
-                          <option value={12}>Siap Press</option>
-                          <option value={13}>Proses Press</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-press") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Ready to Press, Proses Press)</option>
-                          <option value={12}>Ready to Press</option>
-                          <option value={13}>Proses Press</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-print") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Layout Ready, Start Print)</option>
-                          <option value={9}>Layout Ready</option>
-                          <option value={11}>Start Print</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-layout") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Desain Ready, Start Layout)</option>
-                          <option value={7}>Desain Ready</option>
-                          <option value={8}>Start Layout</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-qc") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Jahit, QC, Packing)</option>
-                          <option value={16}>Ready Jahit</option>
-                          <option value={17}>Proses Jahit</option>
-                          <option value={18}>Ready QC</option>
-                          <option value={19}>Start QC</option>
-                          <option value={20}>Ready Packing</option>
-                        </>
-                      );
-                    }
-                    if (role === "pengawas") {
-                      return (
-                        <>
-                          <option value={0}>Semua Data (Print Ready, Cutting Ready, Persiapan Kain, Proses Printing)</option>
-                          <option value={9}>Layout Print Ready</option>
-                          <option value={14}>Kain Ready Cutting</option>
-                          <option value={10}>Persiapan Kain</option>
-                          <option value={11}>Proses Printing</option>
-                        </>
-                      );
-                    }
-                    if (role === "tukang-layanics") {
-                      return (
-                        <>
-                          <option value={21}>Packing Selesai</option>
-                          <option value={22}>Final Cust</option>
-                        </>
-                      );
-                    }
-                    return (
-                      <>
-                        <option value={0}>FO ALL</option>
-                        <option value={1}>FO DP - Antrian</option>
-                        <option value={2}>FO DP + Non DP Antrian</option>
-                        <option value={3}>FO Belum DP</option>
-                        <option value={4}>DP - Belum KLaim</option>
-                        <option value={5}>Belum KLaim - FinalQC</option>
-                        <option value={6}>Proses Desain</option>
-                        <option value={7}>Desain Ready</option>
-                        <option value={8}>Proses Susun Layout</option>
-                        <option value={9}>Layout Print Ready</option>
-                        <option value={10}>Proses Persiapan Bahan Kain</option>
-                        <option value={11}>Proses Printing</option>
-                        <option value={12}>Ready to Press</option>
-                        <option value={13}>Proses Press</option>
-                        <option value={14}>Kain Ready Cutting</option>
-                        <option value={15}>Proses Cutting</option>
-                        <option value={16}>Ready Jahit</option>
-                        <option value={17}>Proses Jahit</option>
-                        <option value={18}>Ready QC</option>
-                        <option value={19}>Proses QC</option>
-                        <option value={20}>Ready Packing</option>
-                        <option value={21}>Packing Selesai</option>
-                        <option value={22}>Final Cust</option>
-                      </>
-                    );
-                  })()}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400">Status:</span>
+              <select
+                value={foListStatusCategory}
+                onChange={(e) => {
+                  setFoListStatusCategory(Number(e.target.value));
+                  setFoListPage(1);
+                }}
+                className="h-9 max-w-[200px] rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none focus:border-cyan-400 truncate"
+              >
+                <option value={0}>FO All</option>
+                  <option value={1}>FO DP Antrian Produksi</option>
+                  <option value={2}>FO Outstanding Produksi</option>
+                  <option value={3}>FO Belum DP</option>
+                  <option value={4}>FO DP - Belum Klaim Jahit</option>
+                  <option value={5}>FO Belum Klaim Jahit - FinalQC</option>
+                  <option value={6}>Proses Desain</option>
+                  <option value={7}>Proses Layout</option>
+                  <option value={8}>Proses Persiapan Bahan</option>
+                  <option value={9}>Proses Printing</option>
+                  <option value={10}>Proses Press Sublim</option>
+                  <option value={11}>Proses Cutting Kain Sublime</option>
+                  <option value={12}>Proses Jahit</option>
+                  <option value={13}>Proses QC</option>
+                  <option value={14}>Produk Ready to Customer</option>
+                  <option value={15}>Produk Sudah di Terima Customer</option>
                 </select>
               </div>
-            )}
 
             {/* Search filter dropdown */}
             <div className="flex items-center gap-2">
@@ -4392,29 +4308,103 @@ export default function OrderJobPage() {
                    );
                  })()}
 
-                {/* Nama Pegawai */}
-                {nextJobVal !== "-" && !editFoDetailQuery.isLoading ? (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nama Pegawai</label>
-                    <select
-                      value={selectedPegawai}
-                      onChange={(e) => setSelectedPegawai(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-                      disabled={isUpdating}
-                    >
-                      {[
-                        "ALDO", "BEN", "JIHAN", "FINA", "FANI", "EGY", "IVAN", "IZAMI", "IKHA", 
-                        "NOVAN", "NATRIS", "NASRIL", "PUSPA", "RISKY", "REINA", "SAFA", "SAID", 
-                        "SYAHNI", "YOHAND", "KARIM-PENJAHIT", "ADI-PENJAHIT", "SANDY-PENJAHIT", 
-                        "ALIF-PENJAHIT", "DIDIN-PENJAHIT", "NN"
-                      ].map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
+                 {/* Nama Pegawai */}
+                 {nextJobVal !== "-" && !editFoDetailQuery.isLoading ? (
+                   <div>
+                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nama Pegawai</label>
+                     <div className="relative w-full" ref={pegawaiDropdownRef}>
+                       <button
+                         type="button"
+                         disabled={isUpdating}
+                         onClick={() => setIsPegawaiOpen((prev) => !prev)}
+                         className="h-10 w-full rounded-lg border border-slate-800 bg-slate-950 px-3 text-sm text-slate-200 outline-none focus:border-amber-500 flex items-center justify-between gap-2 disabled:opacity-50"
+                       >
+                         <span className="truncate text-left font-medium">
+                           {selectedPegawai === "NN" || !selectedPegawai
+                             ? "NN (Belum Diatur)"
+                             : (() => {
+                                 const emp = employeeList.find((e) => e.nm_karyawan === selectedPegawai);
+                                 return emp ? `${emp.nm_karyawan} - ${emp.jabatan}` : selectedPegawai;
+                               })()}
+                         </span>
+                         <ChevronDown className={`size-4 shrink-0 text-slate-400 transition-transform ${isPegawaiOpen ? "rotate-180" : ""}`} />
+                       </button>
+
+                       {isPegawaiOpen && (
+                         <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-lg border border-slate-800 bg-slate-900 shadow-2xl p-2 flex flex-col gap-2">
+                           <div className="relative">
+                             <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400" />
+                             <input
+                               type="text"
+                               autoFocus
+                               value={pegawaiSearch}
+                               onChange={(e) => setPegawaiSearch(e.target.value)}
+                               placeholder="Cari nama / jabatan pegawai..."
+                               className="h-8.5 w-full rounded-md border border-slate-800 bg-slate-950 pl-8 pr-7 text-xs text-white outline-none focus:border-amber-500 placeholder:text-slate-500"
+                             />
+                             {pegawaiSearch && (
+                               <button
+                                 type="button"
+                                 onClick={() => setPegawaiSearch("")}
+                                 className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                               >
+                                 <X className="size-3.5" />
+                               </button>
+                             )}
+                           </div>
+
+                           <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
+                             {("nn".includes(pegawaiSearch.toLowerCase()) || !pegawaiSearch) && (
+                               <button
+                                 type="button"
+                                 onClick={() => {
+                                   setSelectedPegawai("NN");
+                                   setIsPegawaiOpen(false);
+                                   setPegawaiSearch("");
+                                 }}
+                                 className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between ${
+                                   selectedPegawai === "NN" ? "bg-amber-500/20 text-amber-300 font-semibold" : "text-slate-300 hover:bg-slate-800"
+                                 }`}
+                               >
+                                 <span>NN (Belum Diatur)</span>
+                                 {selectedPegawai === "NN" && <Check className="size-3.5 text-amber-400 shrink-0" />}
+                               </button>
+                             )}
+
+                             {filteredEmployeesModal.map((emp) => {
+                               const isSelected = selectedPegawai === emp.nm_karyawan;
+                               return (
+                                 <button
+                                   key={emp.id_karyawan || emp.id}
+                                   type="button"
+                                   onClick={() => {
+                                     setSelectedPegawai(emp.nm_karyawan);
+                                     setIsPegawaiOpen(false);
+                                     setPegawaiSearch("");
+                                   }}
+                                   className={`w-full text-left px-3 py-1.5 rounded-md text-xs transition-colors flex items-center justify-between gap-2 ${
+                                     isSelected ? "bg-amber-500/20 text-amber-300 font-semibold" : "text-slate-300 hover:bg-slate-800"
+                                   }`}
+                                 >
+                                   <span className="truncate">
+                                     {emp.nm_karyawan} <span className="text-slate-400 font-normal">- {emp.jabatan}</span>
+                                   </span>
+                                   {isSelected && <Check className="size-3.5 text-amber-400 shrink-0" />}
+                                 </button>
+                               );
+                             })}
+
+                             {filteredEmployeesModal.length === 0 && !("nn".includes(pegawaiSearch.toLowerCase())) && (
+                               <div className="px-3 py-3 text-center text-xs text-slate-500">
+                                 Pegawai tidak ditemukan
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 ) : null}
 
                 {/* Nama Penerima */}
                 {nextJobVal === "Produk diterima Customer" && !editFoDetailQuery.isLoading ? (

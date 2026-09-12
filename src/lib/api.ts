@@ -27,6 +27,9 @@ import type {
   UpdateWageCategoryPayload,
   CreateWageRatePayload,
   UpdateWageRatePayload,
+  EmployeeListResponse,
+  CreateEmployeePayload,
+  UpdateEmployeePayload,
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -38,12 +41,28 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 export class ApiError extends Error {
   status: number;
   data?: any;
+  details?: string;
+  sqlState?: string;
+  code?: string;
+  sqlMessage?: string;
 
-  constructor(message: string, status: number, data?: any) {
+  constructor(
+    message: string,
+    status: number,
+    data?: any,
+    details?: string,
+    sqlState?: string,
+    code?: string,
+    sqlMessage?: string
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.data = data;
+    this.details = details;
+    this.sqlState = sqlState;
+    this.code = code;
+    this.sqlMessage = sqlMessage;
   }
 }
 
@@ -62,15 +81,27 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
   if (!response.ok) {
     let message = `Request gagal dengan status ${response.status}`;
+    let details: string | undefined;
+    let sqlState: string | undefined;
+    let code: string | undefined;
+    let sqlMessage: string | undefined;
+
     if (typeof payload === "object" && payload !== null) {
-      if ("error" in payload && typeof payload.error === "string" && payload.error) {
-        message = payload.error;
-      } else if ("message" in payload && typeof payload.message === "string" && payload.message) {
-        message = payload.message;
+      const p = payload as Record<string, any>;
+      if (p.error && typeof p.error === "string") {
+        message = p.error;
+      } else if (p.message && typeof p.message === "string") {
+        message = p.message;
       }
+      if (p.details) details = String(p.details);
+      if (p.sqlState) sqlState = String(p.sqlState);
+      if (p.code) code = String(p.code);
+      if (p.sqlMessage) sqlMessage = String(p.sqlMessage);
+    } else if (typeof payload === "string") {
+      details = payload;
     }
 
-    throw new ApiError(message, response.status, payload);
+    throw new ApiError(message, response.status, payload, details, sqlState, code, sqlMessage);
   }
 
   return payload as T;
@@ -305,6 +336,24 @@ export const api = {
     );
   },
 
+  getControlStatuses(params?: {
+    nama_pegawai?: string;
+    date_filter?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params?.nama_pegawai) searchParams.set("nama_pegawai", params.nama_pegawai);
+    if (params?.date_filter) searchParams.set("date_filter", params.date_filter);
+    if (params?.start_date) searchParams.set("start_date", params.start_date);
+    if (params?.end_date) searchParams.set("end_date", params.end_date);
+
+    const query = searchParams.toString();
+    return apiFetch<{ statuses: string[] }>(
+      `/production/control-statuses${query ? `?${query}` : ""}`
+    );
+  },
+
   getMonitoringStaff(params?: {
     page?: number;
     limit?: number | "all";
@@ -312,6 +361,7 @@ export const api = {
     date_filter?: string;
     start_date?: string;
     end_date?: string;
+    job_filter?: string;
     search?: string;
   }) {
     const searchParams = new URLSearchParams();
@@ -322,6 +372,7 @@ export const api = {
     if (params?.date_filter) searchParams.set("date_filter", params.date_filter);
     if (params?.start_date) searchParams.set("start_date", params.start_date);
     if (params?.end_date) searchParams.set("end_date", params.end_date);
+    if (params?.job_filter) searchParams.set("job_filter", params.job_filter);
     if (params?.search) searchParams.set("search", params.search);
 
     const query = searchParams.toString();
@@ -472,6 +523,30 @@ export const api = {
     return apiFetch<{ data: Array<{ date_label: string; total: number; omset: number }> }>(
       `/dashboard/sales-chart?range=${range}`
     );
+  },
+  getEmployees(params?: { page?: number; limit?: number | "all"; search?: string; dept?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.dept) searchParams.set("dept", params.dept);
+
+    const query = searchParams.toString();
+    return apiFetch<EmployeeListResponse>(`/employee${query ? `?${query}` : ""}`);
+  },
+
+  addEmployee(payload: CreateEmployeePayload) {
+    return apiFetch<{ message: string; id_karyawan: string }>("/employee", {
+      method: "POST",
+      body: payload,
+    });
+  },
+
+  updateEmployee(payload: UpdateEmployeePayload) {
+    return apiFetch<{ message: string }>("/employee", {
+      method: "PUT",
+      body: payload,
+    });
   },
 
   getEmployeeSalaries(params?: {
